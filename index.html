@@ -1,0 +1,2214 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPP LOGISTICS MANAGEMENT - Quản Lý Hàng Tồn Cảng & Vận Tải Cont</title>
+  <!-- Tailwind CSS CDN -->
+  <script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=_ZiEn_ae0NuIG7lI-J5KjF8o_UjzSRCTOlQMdc6j4Bu0c8zm__S4gl-ZoRyZ9You0PTlyt-QOxCpQ5IfT1cTza5XLpn9DGdl6XDS9p668knKHpoZfFPRWQMqZ1dnQ4ae728hthhe7C9thtWrogsJiqRFo1_omWuWWhiJ4Z0_Tomeu9uSZ8Eukh9ZJiTXzAO44sp75j3iTNqPrgS9LnYzZJE-pNPQqzuuTxj1jNhWwCbKTr3gNqpDIV6UOfcXbsG6SnRFYeYs77IVtV0UScFcKJXkhE9W_Kjgou-ZdQgc39iFB-ntvuRltd80WBmOuwgP23L8xE6RItByc5-q32egKA" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="https://gc.kis.v2.scr.kaspersky-labs.com/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9jb250cmlidXRpb24udXNlcmNvbnRlbnQuZ29vZ2xlLmNvbS9kb3dubG9hZD9jPUNneGlZWEprWDNOMGIzSmhaMlVTVUJJTmNtVnpjRzl1YzJWZlpHRjBZUm9fQ2pBNE5HSXhZVEExTURGak9URTVaV0UwTURBd05qVmtZbUV3WVRBNE9HSmpOekE0TXpRek1tTTFNek14TW1Gak9XTVNDeElIRUp6YndlblpBeGdCJmZpbGVuYW1lPWluZGV4Lmh0bWwmb3BpPTEwMzEzNTA1MCZhdXRodXNlcj0y"/><script src="https://cdn.tailwindcss.com"></script>
+  <!-- SheetJS CDN xử lý đọc/ghi file Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- JSZip CDN hỗ trợ đọc sâu định dạng màu sắc cell trong file xlsx -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    .badge-expired { background-color: #fee2e2; color: #b91c1c; border: 1px solid #f87171; }
+    .badge-warning { background-color: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
+    .badge-safe { background-color: #d1fae5; color: #047857; border: 1px solid #6ee7b7; }
+    tfoot tr { font-weight: 700; background-color: #f8fafc; border-top: 2px solid #cbd5e1; }
+    .table-scroll { max-height: calc(100vh - 290px); overflow-y: auto; }
+    .col-filter-input { font-size: 11px; padding: 2px 4px; border: 1px solid #cbd5e1; border-radius: 4px; width: 100%; margin-top: 2px; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+
+  <!-- PIN Lock Screen Modal -->
+  <div id="pinLockModal" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+      <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow">
+        <i class="fas fa-shield-alt"></i>
+      </div>
+      <h2 class="text-lg font-bold text-slate-800">Bảo Vệ Truy Cập Cá Nhân</h2>
+      <p class="text-xs text-slate-500 mt-1 mb-4">Vui lòng nhập mã PIN để truy cập SPP Logistics</p>
+      <input type="password" id="inputPinCode" maxlength="8" placeholder="Nhập mã PIN..." class="w-full text-center text-xl tracking-widest px-4 py-2.5 rounded-xl border-2 border-slate-300 focus:border-blue-600 focus:outline-none font-mono mb-3" onkeyup="if(event.key==='Enter') verifyPinCode()">
+      <p id="pinErrorMsg" class="text-xs text-rose-600 font-medium hidden mb-3">Mã PIN không đúng, vui lòng thử lại!</p>
+      <button onclick="verifyPinCode()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition shadow">Mở Khóa</button>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center space-x-3">
+          <div class="bg-blue-600 p-2 rounded-xl text-white font-black text-xl flex items-center justify-center w-11 h-11 shadow-md tracking-wider">
+            SPP
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h1 class="text-lg font-extrabold leading-none tracking-wide text-white">SPP LOGISTICS MANAGEMENT</h1>
+              <span id="cloudStatusBadge" class="text-[10px] px-2 py-0.5 rounded-full font-medium bg-emerald-950 text-emerald-300 border border-emerald-700">
+                <i class="fas fa-database text-[9px] mr-1"></i> <span id="cloudStatusText">Local</span>
+              </span>
+            </div>
+            <p class="text-xs text-blue-300 mt-1">Hàng Tồn Tại Cảng • Bốc Cont & Trả Rỗng • Quản Lý Hạn DEM / DET / STO</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="hidden md:inline-flex text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-300">
+            <i class="far fa-calendar-alt mr-1.5 text-blue-400"></i> Hôm nay: <strong id="todayStr" class="text-white ml-1"></strong>
+          </span>
+          <button onclick="openSettingsModal()" title="Cài đặt hệ thống, đồng bộ Cloud & Sao lưu" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-lg transition flex items-center space-x-1.5 shadow-sm">
+            <i class="fas fa-cog text-blue-400"></i> <span class="hidden sm:inline">Cài Đặt & Sao Lưu</span>
+          </button>
+        </div>
+      </div>
+      <!-- Tab Navigation -->
+      <nav class="flex space-x-1 border-t border-slate-800 overflow-x-auto py-2 text-xs sm:text-sm font-semibold">
+        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn px-3 sm:px-4 py-2 rounded-lg transition flex items-center space-x-2 text-white bg-blue-600 shadow">
+          <i class="fas fa-bell"></i> <span>Tổng Quan & Cảnh Báo</span>
+          <span id="alertCountBadge" class="ml-1.5 px-1.5 py-0.5 text-[10px] bg-rose-500 text-white rounded-full font-bold">0</span>
+        </button>
+        <button onclick="switchTab('bl')" id="tab-bl" class="tab-btn px-3 sm:px-4 py-2 rounded-lg transition flex items-center space-x-2 text-slate-300 hover:text-white hover:bg-slate-800">
+          <i class="fas fa-boxes"></i> <span>Hàng Tồn Tại Cảng</span>
+          <span id="blCountBadge" class="ml-1 text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">0</span>
+        </button>
+        <button onclick="switchTab('containers')" id="tab-containers" class="tab-btn px-3 sm:px-4 py-2 rounded-lg transition flex items-center space-x-2 text-slate-300 hover:text-white hover:bg-slate-800">
+          <i class="fas fa-truck-loading"></i> <span>Bốc Cont & Đóng Hàng</span>
+          <span id="contCountBadge" class="ml-1 text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">0</span>
+        </button>
+        <button onclick="switchTab('tracking')" id="tab-tracking" class="tab-btn px-3 sm:px-4 py-2 rounded-lg transition flex items-center space-x-2 text-slate-300 hover:text-white hover:bg-slate-800">
+          <i class="fas fa-hourglass-half text-amber-400"></i> <span>Theo Dõi Trả Rỗng</span>
+          <span id="pendingReturnCountBadge" class="ml-1 text-[10px] bg-amber-500 text-white font-bold px-2 py-0.5 rounded-full">0</span>
+        </button>
+        <button onclick="switchTab('search')" id="tab-search" class="tab-btn px-3 sm:px-4 py-2 rounded-lg transition flex items-center space-x-2 text-slate-300 hover:text-white hover:bg-slate-800">
+          <i class="fas fa-chart-pie"></i> <span>Tìm Kiếm & Thống Kê</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5">
+
+    <!-- ================== TAB 1: TỔNG QUAN & CẢNH BÁO ================== -->
+    <section id="content-dashboard" class="space-y-5">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">B/L Còn Tồn Cảng</p>
+            <p id="stat-bl-pending" class="text-2xl font-black text-slate-800 mt-0.5">0</p>
+            <p id="stat-cont-pending" class="text-xs text-blue-600 mt-1 font-semibold">0 cont còn tồn bãi</p>
+          </div>
+          <div class="w-11 h-11 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl shadow-inner">
+            <i class="fas fa-warehouse"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-blue-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Tổng GW Tồn Cảng</p>
+            <p id="stat-gw-pending" class="text-2xl font-black text-blue-800 mt-0.5 font-mono">0.000</p>
+            <p class="text-xs text-slate-500 mt-1">Tấn (GW còn lại)</p>
+          </div>
+          <div class="w-11 h-11 bg-blue-50 text-blue-700 rounded-xl flex items-center justify-center text-xl shadow-inner">
+            <i class="fas fa-weight-hanging"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-rose-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-bold text-rose-600 uppercase tracking-wider">Cảnh Báo STO/DEM</p>
+            <div class="flex items-baseline space-x-1 mt-0.5">
+              <span id="stat-alert-dem-sto" class="text-2xl font-black text-rose-700">0</span>
+              <span class="text-xs text-rose-500 font-semibold">(<span id="stat-expired-sto-dem">0</span> quá hạn)</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">B/L chưa bốc hết cont</p>
+          </div>
+          <div class="w-11 h-11 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center text-xl shadow-inner">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-amber-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Cảnh Báo Hạn DET</p>
+            <div class="flex items-baseline space-x-1 mt-0.5">
+              <span id="stat-alert-det" class="text-2xl font-black text-amber-700">0</span>
+              <span class="text-xs text-rose-600 font-semibold">(<span id="stat-expired-det">0</span> quá hạn)</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">Cont chưa trả rỗng</p>
+          </div>
+          <div class="w-11 h-11 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl shadow-inner">
+            <i class="fas fa-calendar-times"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-purple-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-bold text-purple-700 uppercase tracking-wider">Nợ Testliner Transloading</p>
+            <p id="stat-pending-trans" class="text-2xl font-black text-purple-800 mt-0.5">0</p>
+            <p class="text-xs text-slate-500 mt-1">cont chưa trả rỗng</p>
+          </div>
+          <div class="w-11 h-11 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center text-xl shadow-inner">
+            <i class="fas fa-people-carry-box"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-orange-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-bold text-orange-700 uppercase tracking-wider">Nợ Bột Giấy (Pulp)</p>
+            <p id="stat-pending-pulp" class="text-2xl font-black text-orange-800 mt-0.5">0</p>
+            <p class="text-xs text-slate-500 mt-1">cont chưa trả rỗng</p>
+          </div>
+          <div class="w-11 h-11 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center text-xl shadow-inner">
+            <i class="fas fa-boxes-packing"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-amber-300 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Tổng Cont Chưa Trả Rỗng</p>
+            <p id="stat-total-unreturned" class="text-2xl font-black text-amber-900 mt-0.5">0</p>
+            <p class="text-xs text-amber-700 mt-1">tất cả các loại hàng</p>
+          </div>
+          <div class="w-11 h-11 bg-amber-50 text-amber-700 rounded-xl flex items-center justify-center text-xl shadow-inner">
+            <i class="fas fa-clock"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Tổng Cont Đã Trả Rỗng</p>
+            <p id="stat-cont-returned" class="text-2xl font-black text-emerald-800 mt-0.5">0</p>
+            <p id="stat-cont-hauled" class="text-xs text-slate-500 mt-1">trên 0 cont đã bốc</p>
+          </div>
+          <div class="w-11 h-11 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl shadow-inner">
+            <i class="fas fa-check-circle"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bảng Cảnh Báo STO / DEM -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
+            <h2 class="font-bold text-slate-800 text-sm sm:text-base">Cảnh Báo Đến Hạn STO & DEM (B/L Chưa Bốc Hết Cont)</h2>
+          </div>
+          <span class="text-xs text-slate-500 hidden sm:inline">Quy tắc: Cont còn lại > 0 và hạn ≤ <span class="cfgThresholdText font-bold text-blue-600">3</span> ngày</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-100/90 text-slate-700 uppercase font-semibold">
+              <tr>
+                <th class="px-4 py-3">Mức Độ</th>
+                <th class="px-4 py-3">Số B/L</th>
+                <th class="px-4 py-3">Hãng Tàu</th>
+                <th class="px-4 py-3">Tên Hàng / Shipper</th>
+                <th class="px-4 py-3 text-center">Tồn / Tổng Cont</th>
+                <th class="px-4 py-3">Hạn STO</th>
+                <th class="px-4 py-3">Hạn DEM</th>
+                <th class="px-4 py-3">Tình Trạng Hạn</th>
+                <th class="px-4 py-3 text-right">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="stoDemAlertTableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Bảng Cảnh Báo DET -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+            <h2 class="font-bold text-slate-800 text-sm sm:text-base">Cảnh Báo Đến Hạn DET (Cont Đã Bốc Chưa Nhập Ngày Trả Rỗng)</h2>
+          </div>
+          <span class="text-xs text-slate-500 hidden sm:inline">Quy tắc: Chưa trả rỗng và hạn DET ≤ <span class="cfgThresholdText font-bold text-blue-600">3</span> ngày</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-100/90 text-slate-700 uppercase font-semibold">
+              <tr>
+                <th class="px-4 py-3">Mức Độ</th>
+                <th class="px-4 py-3">Số Cont</th>
+                <th class="px-4 py-3">Số B/L</th>
+                <th class="px-4 py-3">Hãng Tàu</th>
+                <th class="px-4 py-3">Ngày Bốc</th>
+                <th class="px-4 py-3">Hạn DET</th>
+                <th class="px-4 py-3">Số Xe / Tài Xế</th>
+                <th class="px-4 py-3">Depot Trả Rỗng</th>
+                <th class="px-4 py-3 text-right">Nhập Trả Rỗng</th>
+              </tr>
+            </thead>
+            <tbody id="detAlertTableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================== TAB 2: HÀNG TỒN TẠI CẢNG THEO B/L ================== -->
+    <section id="content-bl" class="hidden space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div>
+          <h2 class="font-bold text-lg text-slate-800">Quản Lý Hàng Tồn Tại Cảng Theo B/L</h2>
+          <p class="text-xs text-slate-500">Lọc & Sắp xếp từng cột giống Excel • Click số B/L để xem danh sách container đã bốc</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="resetBlFilters()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-300 transition">
+            <i class="fas fa-filter-circle-xmark mr-1"></i> Xóa Lọc
+          </button>
+          <label class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-lg cursor-pointer flex items-center space-x-1.5 shadow transition">
+            <i class="fas fa-file-import"></i> <span>Import Excel B/L</span>
+            <input type="file" id="excelBlInput" accept=".xlsx, .xls" class="hidden" onchange="handleBlExcelFile(event)">
+          </label>
+          <button onclick="downloadBlTemplate()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium px-3 py-2 rounded-lg border border-slate-300 transition flex items-center space-x-1">
+            <i class="fas fa-download text-slate-500"></i> <span>Tải Mẫu B/L</span>
+          </button>
+          <button onclick="exportBlExcel()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow">
+            <i class="fas fa-file-export"></i> <span>Xuất Excel</span>
+          </button>
+          <button onclick="openBlModal()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition flex items-center space-x-1 shadow">
+            <i class="fas fa-plus"></i> <span>+ Thêm B/L</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bảng dữ liệu B/L với bộ lọc từng cột -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-3 border-b border-slate-100 flex flex-wrap gap-2 items-center justify-between bg-slate-50">
+          <div class="text-xs text-slate-600">
+            Hiển thị: <strong id="blTableCount" class="text-blue-700 font-bold">0</strong> / <span id="blTableTotal">0</span> B/L
+          </div>
+          <div class="text-xs text-slate-500 italic">
+            * Nhập từ khóa vào ô dưới tiêu đề để lọc hoặc nhấn mũi tên <i class="fas fa-sort text-slate-400"></i> để sắp xếp
+          </div>
+        </div>
+        <div class="overflow-x-auto table-scroll">
+          <table class="w-full text-left text-xs text-slate-600 border-collapse">
+            <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0 z-20 shadow-sm">
+              <tr>
+                <th class="px-3 py-2 border-b border-slate-200">STT</th>
+                <th class="px-3 py-2 border-b border-slate-200">
+                  <div class="flex items-center justify-between cursor-pointer" onclick="sortBlColumn('eta')">
+                    <span>ETA</span> <i id="sortIcon_eta" class="fas fa-sort text-slate-400"></i>
+                  </div>
+                  <input type="text" id="filter_bl_eta" class="col-filter-input font-normal" placeholder="Lọc ETA..." oninput="renderBlTable()">
+                </th>
+                <th class="px-3 py-2 border-b border-slate-200">
+                  <div class="flex items-center justify-between cursor-pointer" onclick="sortBlColumn('blNumber')">
+                    <span>Số B/L</span> <i id="sortIcon_blNumber" class="fas fa-sort text-slate-400"></i>
+                  </div>
+                  <input type="text" id="filter_bl_blNumber" class="col-filter-input font-normal" placeholder="Lọc số B/L..." oninput="renderBlTable()">
+                </th>
+                <th class="px-3 py-2 border-b border-slate-200">
+                  <div class="flex items-center justify-between cursor-pointer" onclick="sortBlColumn('cargoName')">
+                    <span>Tên Hàng</span> <i id="sortIcon_cargoName" class="fas fa-sort text-slate-400"></i>
+                  </div>
+                  <input type="text" id="filter_bl_cargoName" class="col-filter-input font-normal" placeholder="Lọc tên hàng..." oninput="renderBlTable()">
+                </th>
+                <th class="px-3 py-2 border-b border-slate-200">
+                  <div class="flex items-center justify-between cursor-pointer" onclick="sortBlColumn('shipper')">
+                    <span>Shipper</span> <i id="sortIcon_shipper" class="fas fa-sort text-slate-400"></i>
+                  </div>
+                  <input type="text" id="filter_bl_shipper" class="col-filter-input font-normal" placeholder="Lọc shipper..." oninput="renderBlTable()">
+                </th>
+                <th class="px-3 py-2 border-b border-slate-200">
+                  <div class="flex items-center justify-between cursor-pointer" onclick="sortBlColumn('carrier')">
+                    <span>Carrier</span> <i id="sortIcon_carrier" class="fas fa-sort text-slate-400"></i>
+                  </div>
+                  <input type="text" id="filter_bl_carrier" class="col-filter-input font-normal" placeholder="Lọc carrier..." oninput="renderBlTable()">
+                </th>
+                <th class="px-3 py-2 text-center border-b border-slate-200">
+                  <div class="flex items-center justify-center cursor-pointer" onclick="sortBlColumn('totalCont')">
+                    <span>Tổng Cont</span> <i id="sortIcon_totalCont" class="fas fa-sort text-slate-400 ml-1"></i>
+                  </div>
+                </th>
+                <th class="px-3 py-2 text-center border-b border-slate-200">
+                  <div class="flex items-center justify-center cursor-pointer" onclick="sortBlColumn('deliveredCont')">
+                    <span>Đã Giao</span> <i id="sortIcon_deliveredCont" class="fas fa-sort text-slate-400 ml-1"></i>
+                  </div>
+                </th>
+                <th class="px-3 py-2 text-center border-b border-slate-200">
+                  <div class="flex items-center justify-center cursor-pointer" onclick="sortBlColumn('remainingCont')">
+                    <span>Còn Lại</span> <i id="sortIcon_remainingCont" class="fas fa-sort text-slate-400 ml-1"></i>
+                  </div>
+                </th>
+                <th class="px-3 py-2 text-right border-b border-slate-200">
+                  <div class="flex items-center justify-end cursor-pointer" onclick="sortBlColumn('totalGw')">
+                    <span>Tổng GW (Tấn)</span> <i id="sortIcon_totalGw" class="fas fa-sort text-slate-400 ml-1"></i>
+                  </div>
+                </th>
+                <th class="px-3 py-2 text-right border-b border-slate-200">GW Đã Giao</th>
+                <th class="px-3 py-2 text-right border-b border-slate-200">GW Còn Lại</th>
+                <th class="px-3 py-2 border-b border-slate-200">DEM/DET</th>
+                <th class="px-3 py-2 border-b border-slate-200">Hạn STO</th>
+                <th class="px-3 py-2 border-b border-slate-200">Hạn DEM</th>
+                <th class="px-3 py-2 border-b border-slate-200">Hạn DET</th>
+                <th class="px-3 py-2 border-b border-slate-200">
+                  <div class="flex items-center justify-between cursor-pointer" onclick="sortBlColumn('returnDepot')">
+                    <span>Bãi Trả Rỗng</span> <i id="sortIcon_returnDepot" class="fas fa-sort text-slate-400"></i>
+                  </div>
+                  <input type="text" id="filter_bl_returnDepot" class="col-filter-input font-normal" placeholder="Lọc depot..." oninput="renderBlTable()">
+                </th>
+                <th class="px-3 py-2 border-b border-slate-200">Trạng Thái</th>
+                <th class="px-3 py-2 text-center border-b border-slate-200">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="blTableBody" class="divide-y divide-slate-100"></tbody>
+            <tfoot id="blTableFoot" class="sticky bottom-0 z-10 text-slate-800 shadow-md"></tfoot>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================== TAB 3: BỐC CONT, ĐÓNG HÀNG & TRẢ RỖNG ================== -->
+    <section id="content-containers" class="hidden space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div>
+          <h2 class="font-bold text-lg text-slate-800">Chi Tiết Bốc Cont, Đóng Hàng & Trả Rỗng</h2>
+          <p class="text-xs text-slate-500">Nhập dữ liệu Daily Loading Report • Đồng bộ ngày trả rỗng tự động qua link Google Sheet</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="syncEmptyReturnFromGoogleSheet()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition flex items-center space-x-1.5 shadow">
+            <i class="fas fa-rotate"></i> <span>Đồng Bộ Google Sheet Trả Rỗng</span>
+          </button>
+          <label class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-2 rounded-lg cursor-pointer flex items-center space-x-1.5 shadow transition">
+            <i class="fas fa-file-import"></i> <span>Import File "Daily Loading Report"</span>
+            <input type="file" id="excelTruckInput" accept=".xlsx, .xls" class="hidden" onchange="handleDailyLoadingExcelFile(event)">
+          </label>
+          <button onclick="downloadContainerTemplate()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium px-3 py-2 rounded-lg border border-slate-300 transition flex items-center space-x-1">
+            <i class="fas fa-download text-slate-500"></i> <span>Mẫu Daily Report</span>
+          </button>
+          <button onclick="exportContainersExcel()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow">
+            <i class="fas fa-file-export"></i> <span>Xuất Excel</span>
+          </button>
+          <button onclick="openContModal()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition flex items-center space-x-1 shadow">
+            <i class="fas fa-plus"></i> <span>+ Thêm Cont</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bảng dữ liệu Cont -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-3 border-b border-slate-100 flex flex-wrap gap-2 items-center justify-between bg-slate-50">
+          <div class="relative w-80">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+              <i class="fas fa-search text-xs"></i>
+            </span>
+            <input type="text" id="contSearchInput" oninput="renderContTable()" placeholder="Tìm số cont, số xe, B/L, tài xế, carrier..." class="w-full text-xs pl-8 pr-3 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="flex items-center space-x-3 text-xs text-slate-500">
+            <span>Hiển thị: <strong id="contTableCount" class="text-slate-800 font-bold">0</strong> container</span>
+            <button onclick="document.getElementById('contSearchInput').value=''; renderContTable();" class="text-blue-600 hover:underline">Xóa tìm</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto table-scroll">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0 z-10 shadow-sm">
+              <tr>
+                <th class="px-3 py-2.5">STT</th>
+                <th class="px-3 py-2.5">Ngày Bốc</th>
+                <th class="px-3 py-2.5">Số Cont</th>
+                <th class="px-3 py-2.5">Loại Cont</th>
+                <th class="px-3 py-2.5">Số B/L</th>
+                <th class="px-3 py-2.5">Carrier</th>
+                <th class="px-3 py-2.5">Số Xe / Mooc</th>
+                <th class="px-3 py-2.5">Tài Xế</th>
+                <th class="px-3 py-2.5">Hạn DET</th>
+                <th class="px-3 py-2.5">Hàng Đóng Về</th>
+                <th class="px-3 py-2.5 text-center">Xếp Nằm?</th>
+                <th class="px-3 py-2.5 text-center">Lót Su?</th>
+                <th class="px-3 py-2.5">Ngày Trả Rỗng</th>
+                <th class="px-3 py-2.5">Depot Trả Rỗng</th>
+                <th class="px-3 py-2.5">Hư Hỏng / Ghi Chú</th>
+                <th class="px-3 py-2.5 text-center">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="contTableBody" class="divide-y divide-slate-100"></tbody>
+            <tfoot id="contTableFoot" class="sticky bottom-0 z-10 text-slate-800 shadow-md"></tfoot>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================== TAB 4: THEO DÕI TRẢ RỖNG ================== -->
+    <section id="content-tracking" class="hidden space-y-4">
+      <div class="bg-white p-4 rounded-xl border border-amber-200 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-amber-50/40">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="w-3 h-3 rounded-full bg-amber-500 animate-pulse"></span>
+            <h2 class="font-bold text-lg text-slate-800">Theo Dõi Trả Rỗng (Nợ Trả Rỗng Transloading & Pulp)</h2>
+          </div>
+          <p class="text-xs text-amber-800 mt-0.5">
+            Danh sách tự động lọc các container đóng hàng <strong>TESTLINER TRANSLOADING</strong> và <strong>PULP</strong> hiện chưa có ngày trả rỗng.
+          </p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="syncEmptyReturnFromGoogleSheet()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition flex items-center space-x-1.5 shadow">
+            <i class="fas fa-rotate"></i> <span>Quét Lại Từ Google Sheet</span>
+          </button>
+          <button onclick="exportTrackingPendingExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition flex items-center space-x-1.5 shadow">
+            <i class="fas fa-file-excel"></i> <span>Xuất Excel Danh Sách Nợ Rỗng</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bảng danh sách cont nợ trả rỗng -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-3 border-b border-slate-100 flex flex-wrap gap-2 items-center justify-between bg-slate-50">
+          <div class="text-xs text-slate-600">
+            Tổng số container nợ trả rỗng: <strong id="trackingCountBadge" class="text-rose-600 font-bold text-sm">0</strong> cont
+          </div>
+          <div class="text-xs text-slate-500">
+            * Nhấn nút <strong>"Nhập ngày"</strong> để ghi nhận ngày trả rỗng trực tiếp cho từng container
+          </div>
+        </div>
+        <div class="overflow-x-auto table-scroll">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0 z-10 shadow-sm">
+              <tr>
+                <th class="px-3 py-2.5">STT</th>
+                <th class="px-3 py-2.5">Ngày Bốc</th>
+                <th class="px-3 py-2.5">Số Cont</th>
+                <th class="px-3 py-2.5">Loại Cont</th>
+                <th class="px-3 py-2.5">Số B/L</th>
+                <th class="px-3 py-2.5">Carrier</th>
+                <th class="px-3 py-2.5">Số Xe / Mooc</th>
+                <th class="px-3 py-2.5">Lái Xe / SĐT</th>
+                <th class="px-3 py-2.5">Hạn DET</th>
+                <th class="px-3 py-2.5">Tình Trạng Hạn</th>
+                <th class="px-3 py-2.5">Hàng Đóng Về</th>
+                <th class="px-3 py-2.5 text-center">Xếp Nằm</th>
+                <th class="px-3 py-2.5 text-center">Lót Su</th>
+                <th class="px-3 py-2.5">Depot Trả Rỗng</th>
+                <th class="px-3 py-2.5 text-center">Cập Nhật Trả Rỗng</th>
+              </tr>
+            </thead>
+            <tbody id="trackingTableBody" class="divide-y divide-slate-100"></tbody>
+            <tfoot id="trackingTableFoot" class="sticky bottom-0 z-10 text-slate-800 shadow-md"></tfoot>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================== TAB 5: TÌM KIẾM VÀ THỐNG KÊ ================== -->
+    <section id="content-search" class="hidden space-y-4">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <h2 class="font-bold text-lg text-slate-800 mb-3">Tìm Kiếm Nâng Cao & Thống Kê Dữ Liệu</h2>
+        
+        <!-- Hàng 1: Tiêu chí thời gian -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs mb-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Căn Cứ Mốc Thời Gian</label>
+            <select id="advDateField" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-semibold text-blue-900 bg-blue-50/50" onchange="runAdvSearch()">
+              <option value="loadingDate">Ngày Bốc Cont</option>
+              <option value="eta">Ngày ETA Của B/L</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Kiểu Thống Kê Thời Gian</label>
+            <select id="advPeriodType" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300" onchange="togglePeriodInputs(); runAdvSearch();">
+              <option value="ALL">-- Toàn Bộ Thời Gian --</option>
+              <option value="DAY">Theo Ngày Cụ Thể</option>
+              <option value="MONTH">Theo Tháng</option>
+              <option value="QUARTER">Theo Quý</option>
+              <option value="YEAR">Theo Năm</option>
+              <option value="RANGE">Khoảng Thời Gian (Từ ... Đến ...)</option>
+            </select>
+          </div>
+          
+          <div id="periodInputContainer" class="sm:col-span-2"></div>
+        </div>
+
+        <!-- Hàng 2: Bộ lọc nghiệp vụ & Depot -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+          <div>
+            <label class="block font-medium text-slate-600 mb-1">Từ Khóa Tự Do</label>
+            <input type="text" id="advKeyword" oninput="runAdvSearch()" placeholder="Số B/L, Cont, Xe, Shipper, Lái xe..." class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-600 mb-1">Hãng Tàu (Carrier)</label>
+            <input type="text" id="advCarrier" oninput="runAdvSearch()" placeholder="EMC, CMA, HPL, MSK..." class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-600 mb-1">Hàng Đóng Về</label>
+            <select id="advCargoReturn" onchange="runAdvSearch()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300">
+              <option value="">-- Tất cả Hàng Đóng Về --</option>
+              <option value="EMPTY">Về Rỗng (EMPTY)</option>
+              <option value="TESTLINER_REUSE">TESTLINER (REUSE)</option>
+              <option value="TESTLINER_TRANSLOADING">TESTLINER (TRANSLOADING)</option>
+              <option value="PULP">Bột Giấy (PULP)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-600 mb-1">Depot Trả Rỗng</label>
+            <select id="advDepotSelect" onchange="runAdvSearch()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300">
+              <option value="">-- Tất cả Depot --</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 mt-3 pt-3 border-t border-slate-100">
+          <div class="flex flex-wrap items-center gap-4">
+            <label class="flex items-center space-x-1.5 cursor-pointer text-xs text-slate-700">
+              <input type="checkbox" id="advLyingPaperOnly" onchange="runAdvSearch()" class="rounded text-blue-600 focus:ring-blue-500">
+              <span>Chỉ Cont có Giấy xếp nằm</span>
+            </label>
+            <label class="flex items-center space-x-1.5 cursor-pointer text-xs text-slate-700">
+              <input type="checkbox" id="advPaddedOnly" onchange="runAdvSearch()" class="rounded text-indigo-600 focus:ring-indigo-500">
+              <span>Chỉ Cont có Lót su</span>
+            </label>
+            <label class="flex items-center space-x-1.5 cursor-pointer text-xs text-slate-700">
+              <input type="checkbox" id="advNotReturnedOnly" onchange="runAdvSearch()" class="rounded text-amber-600 focus:ring-amber-500">
+              <span>Chỉ Cont chưa trả rỗng</span>
+            </label>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button onclick="resetAdvSearch()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-lg transition">Xóa Lọc</button>
+            <button onclick="runAdvSearch()" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg transition shadow">Lọc Dữ Liệu</button>
+            <button onclick="exportFilteredExcel()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-lg transition flex items-center space-x-1 shadow">
+              <i class="fas fa-file-excel"></i> <span>Xuất Excel Kết Quả</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kết Quả Tìm Kiếm & Thống Kê -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-bold text-slate-800 text-sm">Bảng Số Liệu Chi Tiết Theo Bộ Lọc</h3>
+          <span class="text-xs text-slate-500">Khớp: <strong id="advResultCount" class="text-blue-600 font-bold">0</strong> cont</span>
+        </div>
+        <div class="overflow-x-auto table-scroll">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-100 text-slate-700 font-semibold uppercase sticky top-0 z-10 shadow-sm">
+              <tr>
+                <th class="px-3 py-2">STT</th>
+                <th class="px-3 py-2">Ngày Bốc</th>
+                <th class="px-3 py-2">Số Cont</th>
+                <th class="px-3 py-2">Loại Cont</th>
+                <th class="px-3 py-2">Số B/L</th>
+                <th class="px-3 py-2">Carrier</th>
+                <th class="px-3 py-2">Số Xe / Mooc</th>
+                <th class="px-3 py-2">Lái Xe</th>
+                <th class="px-3 py-2">Hạn DET</th>
+                <th class="px-3 py-2">Hàng Đóng Về</th>
+                <th class="px-3 py-2 text-center">Xếp Nằm</th>
+                <th class="px-3 py-2 text-center">Lót Su</th>
+                <th class="px-3 py-2">Ngày Trả Rỗng</th>
+                <th class="px-3 py-2">Depot Trả Rỗng</th>
+              </tr>
+            </thead>
+            <tbody id="advResultTableBody" class="divide-y divide-slate-100"></tbody>
+            <tfoot id="advResultTableFoot" class="sticky bottom-0 z-10 text-slate-800 shadow-md"></tfoot>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================== MODAL: CÀI ĐẶT TOÀN DIỆN, CLOUD SYNC & SAO LƯU ================== -->
+  <div id="settingsModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i class="fas fa-sliders text-blue-400"></i>
+          <h3 class="font-bold text-sm">Cài Đặt Hệ Thống & Sao Lưu Dữ Liệu</h3>
+        </div>
+        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
+      </div>
+      <div class="p-5 overflow-y-auto space-y-5 text-xs">
+        
+        <!-- Nhóm 1: Kết nối Cloud Database đa thiết bị (0 đồng) -->
+        <div class="border border-blue-200 rounded-xl p-4 bg-blue-50/40 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-blue-900 text-sm flex items-center space-x-1.5">
+              <i class="fas fa-cloud text-blue-600"></i>
+              <span>Đồng Bộ Cloud Đa Thiết Bị (Miễn Phí 0đ)</span>
+            </h4>
+            <span class="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold">Chia sẻ chung dữ liệu PC / Phone</span>
+          </div>
+          <p class="text-slate-600 text-[11px]">
+            Hỗ trợ kết nối trực tiếp đến <strong>Google Firebase Realtime Database</strong> (Khuyên dùng - không bao giờ bị tạm dừng) hoặc <strong>Supabase REST</strong>.
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Loại Nền Tảng Cloud:</label>
+              <select id="cfgCloudProvider" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-semibold" onchange="toggleCloudInputs()">
+                <option value="LOCAL">Chỉ lưu Cục bộ (Trình duyệt này)</option>
+                <option value="FIREBASE">Google Firebase (Khuyên dùng - 0đ)</option>
+                <option value="SUPABASE">Supabase REST (0đ)</option>
+              </select>
+            </div>
+            <div class="sm:col-span-2" id="cloudUrlGroup">
+              <label class="block font-semibold text-slate-700 mb-1">Cloud Database URL / Endpoint:</label>
+              <input type="text" id="cfgCloudUrl" placeholder="https://spp-logistics-default-rtdb.firebaseio.com" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-[11px]">
+            </div>
+          </div>
+          <div id="cloudKeyGroup" class="hidden">
+            <label class="block font-semibold text-slate-700 mb-1">API Key / Auth Secret (Tùy chọn nếu database có rule bảo mật):</label>
+            <input type="password" id="cfgCloudKey" placeholder="Nhập API Key hoặc để trống nếu cấu hình quyền đọc/ghi cá nhân" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-[11px]">
+          </div>
+          <div class="flex items-center justify-end space-x-2 pt-1">
+            <button onclick="testCloudConnection()" class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg transition font-medium">Kiểm Tra Kết Nối</button>
+            <button onclick="syncWithCloudNow()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-semibold shadow">Đồng Bộ Ngay</button>
+          </div>
+        </div>
+
+        <!-- Nhóm 2: Link Google Sheet & Ngày Cảnh Báo -->
+        <div class="border border-slate-200 rounded-xl p-4 bg-white space-y-3">
+          <h4 class="font-bold text-slate-800 text-sm flex items-center space-x-1.5">
+            <i class="fas fa-table text-emerald-600"></i>
+            <span>Google Sheet Trả Rỗng & Cấu Hình Cảnh Báo</span>
+          </h4>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Đường Dẫn Google Sheet Theo Dõi Trả Rỗng:</label>
+            <input type="text" id="cfgGoogleSheetUrl" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-[11px]" placeholder="https://docs.google.com/spreadsheets/d/.../edit?gid=...">
+            <p class="text-[10px] text-slate-500 mt-1">Đảm bảo trang tính chia sẻ quyền xem "Bất kỳ ai có đường liên kết đều có thể xem".</p>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Ngưỡng Số Ngày Cảnh Báo (Hạn STO / DEM / DET):</label>
+              <div class="flex items-center space-x-2">
+                <input type="number" id="cfgWarningDays" min="1" max="30" value="3" class="w-24 px-2.5 py-1.5 rounded-lg border border-slate-300 font-bold text-blue-700">
+                <span class="text-slate-500">ngày trước hạn</span>
+              </div>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Mã PIN Khóa Truy Cập (Tùy chọn):</label>
+              <div class="flex items-center space-x-2">
+                <input type="password" id="cfgPinCode" placeholder="Để trống nếu không khóa..." class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nhóm 3: Sao Lưu và Khôi Phục File Cục Bộ (Bảo Hiểm Dữ Liệu) -->
+        <div class="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-3">
+          <h4 class="font-bold text-slate-800 text-sm flex items-center space-x-1.5">
+            <i class="fas fa-file-shield text-indigo-600"></i>
+            <span>Sao Lưu & Khôi Phục Dữ Liệu (Backup / Restore)</span>
+          </h4>
+          <p class="text-slate-600 text-[11px]">
+            Xuất toàn bộ cơ sở dữ liệu SPP (B/L, Container, Cấu hình) ra file JSON lưu về máy tính hoặc nạp lại khi cần.
+          </p>
+          <div class="flex flex-wrap items-center gap-2 pt-1">
+            <button onclick="downloadBackupJson()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold flex items-center space-x-1.5 shadow transition">
+              <i class="fas fa-download"></i> <span>Tải File Sao Lưu (.JSON)</span>
+            </button>
+            <label class="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg font-semibold flex items-center space-x-1.5 cursor-pointer transition shadow-sm">
+              <i class="fas fa-upload text-indigo-600"></i> <span>Phục Hồi Từ File Sao Lưu</span>
+              <input type="file" id="backupJsonInput" accept=".json" class="hidden" onchange="restoreBackupJson(event)">
+            </label>
+            <button onclick="resetToSampleData()" class="px-3 py-2 text-rose-600 hover:bg-rose-50 rounded-lg transition ml-auto font-medium">
+              <i class="fas fa-undo mr-1"></i> Khôi phục dữ liệu mẫu
+            </button>
+          </div>
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+          <button onclick="closeSettingsModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium">Đóng</button>
+          <button onclick="saveAllSettings()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow">Lưu Toàn Bộ Cài Đặt</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================== MODAL: PREVIEW IMPORT EXCEL B/L ================== -->
+  <div id="blImportPreviewModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-3.5 bg-emerald-800 text-white flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i class="fas fa-file-excel text-emerald-300"></i>
+          <h3 class="font-bold text-sm">Xem Trước & Xác Nhận Import Hàng Tồn Cảng (B/L)</h3>
+        </div>
+        <button onclick="closeBlImportPreviewModal()" class="text-emerald-200 hover:text-white text-xl">&times;</button>
+      </div>
+      <div class="p-5 overflow-y-auto space-y-4 text-xs">
+        <div id="blImportSummary" class="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-emerald-900"></div>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-4">
+            <label class="font-semibold text-slate-700">Khi gặp số B/L đã tồn tại trong hệ thống:</label>
+            <label class="flex items-center space-x-1 cursor-pointer">
+              <input type="radio" name="blDuplicateOption" value="UPDATE" checked class="text-blue-600">
+              <span>Cập nhật thông tin mới</span>
+            </label>
+            <label class="flex items-center space-x-1 cursor-pointer">
+              <input type="radio" name="blDuplicateOption" value="SKIP" class="text-blue-600">
+              <span>Bỏ qua (Giữ nguyên cũ)</span>
+            </label>
+          </div>
+        </div>
+        <div class="overflow-x-auto max-h-72 border border-slate-200 rounded-lg">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-100 text-slate-700 font-semibold sticky top-0">
+              <tr>
+                <th class="px-2.5 py-2">Dòng</th>
+                <th class="px-2.5 py-2">Số B/L</th>
+                <th class="px-2.5 py-2">ETA</th>
+                <th class="px-2.5 py-2">Tên Hàng</th>
+                <th class="px-2.5 py-2">Carrier</th>
+                <th class="px-2.5 py-2 text-center">Tổng Cont</th>
+                <th class="px-2.5 py-2 text-center">Còn Lại</th>
+                <th class="px-2.5 py-2 text-right">Tổng GW</th>
+                <th class="px-2.5 py-2">Trạng Thái B/L</th>
+                <th class="px-2.5 py-2">Kiểm Tra</th>
+              </tr>
+            </thead>
+            <tbody id="blImportPreviewTbody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+        <div class="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+          <button onclick="closeBlImportPreviewModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">Hủy Bỏ</button>
+          <button onclick="confirmCommitBlImport()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow">Xác Nhận Nạp Vào Hệ Thống</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================== MODAL: PREVIEW IMPORT DAILY LOADING REPORT ================== -->
+  <div id="dailyImportPreviewModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-3.5 bg-indigo-900 text-white flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i class="fas fa-truck-ramp-box text-indigo-300"></i>
+          <h3 class="font-bold text-sm">Xem Trước & Xác Nhận Import Daily Loading Report</h3>
+        </div>
+        <button onclick="closeDailyImportPreviewModal()" class="text-indigo-200 hover:text-white text-xl">&times;</button>
+      </div>
+      <div class="p-5 overflow-y-auto space-y-4 text-xs">
+        <div id="dailyImportSummary" class="bg-indigo-50 p-3 rounded-xl border border-indigo-200 text-indigo-900"></div>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-4">
+            <label class="font-semibold text-slate-700">Khi gặp số Container đã có trong ngày:</label>
+            <label class="flex items-center space-x-1 cursor-pointer">
+              <input type="radio" name="contDuplicateOption" value="UPDATE" checked class="text-indigo-600">
+              <span>Cập nhật bản ghi</span>
+            </label>
+            <label class="flex items-center space-x-1 cursor-pointer">
+              <input type="radio" name="contDuplicateOption" value="SKIP" class="text-indigo-600">
+              <span>Bỏ qua</span>
+            </label>
+          </div>
+        </div>
+        <div class="overflow-x-auto max-h-72 border border-slate-200 rounded-lg">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-100 text-slate-700 font-semibold sticky top-0">
+              <tr>
+                <th class="px-2.5 py-2">Sheet</th>
+                <th class="px-2.5 py-2">Ngày Bốc</th>
+                <th class="px-2.5 py-2">Số Cont</th>
+                <th class="px-2.5 py-2">Số B/L</th>
+                <th class="px-2.5 py-2">Xe / Mooc</th>
+                <th class="px-2.5 py-2">Tài Xế</th>
+                <th class="px-2.5 py-2">Hàng Đóng Về</th>
+                <th class="px-2.5 py-2 text-center">Xếp Nằm?</th>
+                <th class="px-2.5 py-2 text-center">Lót Su?</th>
+                <th class="px-2.5 py-2">Depot</th>
+                <th class="px-2.5 py-2">Tình Trạng Hư Hỏng</th>
+              </tr>
+            </thead>
+            <tbody id="dailyImportPreviewTbody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+        <div class="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+          <button onclick="closeDailyImportPreviewModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">Hủy Bỏ</button>
+          <button onclick="confirmCommitDailyImport()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow">Xác Nhận Nạp Container</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================== MODAL: NHẬP NHANH NGÀY TRẢ RỖNG ================== -->
+  <div id="quickReturnModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+      <div class="px-5 py-3.5 bg-emerald-700 text-white flex items-center justify-between">
+        <h3 class="font-bold text-sm">Cập Nhật Trả Rỗng Cho Container</h3>
+        <button onclick="closeQuickReturnModal()" class="text-emerald-200 hover:text-white text-xl">&times;</button>
+      </div>
+      <form id="quickReturnForm" onsubmit="saveQuickReturn(event)" class="p-5 space-y-3.5 text-xs">
+        <input type="hidden" id="qr_contId">
+        <div class="bg-emerald-50 p-3 rounded-lg border border-emerald-100 space-y-1">
+          <p class="text-slate-600">Số Container: <strong id="qr_contNumberText" class="text-slate-900 font-mono text-sm"></strong></p>
+          <p class="text-slate-600">B/L: <span id="qr_blNumberText" class="font-mono text-blue-800"></span> • Hạn DET: <span id="qr_detDateText" class="font-bold text-rose-700"></span></p>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Ngày Trả Rỗng Thực Tế *</label>
+          <input type="date" id="qr_emptyReturnDate" required class="w-full px-3 py-2 rounded-lg border border-slate-300 font-semibold text-emerald-800">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Bãi Trả Rỗng (Depot)</label>
+          <input type="text" id="qr_returnDepot" placeholder="GFORTUNE, TIEN SA, SLS..." class="w-full px-3 py-2 rounded-lg border border-slate-300">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Ghi Chú Trả Rỗng</label>
+          <input type="text" id="qr_returnRemark" placeholder="Ghi chú thêm nếu có..." class="w-full px-3 py-2 rounded-lg border border-slate-300">
+        </div>
+        <div class="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+          <button type="button" onclick="closeQuickReturnModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">Hủy</button>
+          <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow">Lưu Trả Rỗng</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================== MODAL: THÊM / SỬA B/L ================== -->
+  <div id="blModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
+        <h3 id="blModalTitle" class="font-bold text-sm">Thêm Hàng Tồn Tại Cảng Mới</h3>
+        <button onclick="closeBlModal()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+      </div>
+      <form id="blForm" onsubmit="saveBl(event)" class="p-5 overflow-y-auto space-y-4 text-xs">
+        <input type="hidden" id="blEditId">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Số B/L *</label>
+            <input type="text" id="m_blNumber" required class="w-full px-2.5 py-1.5 rounded border border-slate-300 uppercase font-semibold">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">ETA *</label>
+            <input type="date" id="m_blEta" required class="w-full px-2.5 py-1.5 rounded border border-slate-300" onchange="autoCalcBlDates()">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Hãng Tàu (Carrier) *</label>
+            <input type="text" id="m_blCarrier" required placeholder="EMC, CMA, HPL..." class="w-full px-2.5 py-1.5 rounded border border-slate-300">
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Tên Hàng *</label>
+            <input type="text" id="m_blCargoName" required placeholder="NO.12, OCC 11, MIXED PAPER..." class="w-full px-2.5 py-1.5 rounded border border-slate-300">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Shipper (Nhà cung cấp)</label>
+            <input type="text" id="m_blShipper" placeholder="VIPA, WONDERFUL, CANUSA..." class="w-full px-2.5 py-1.5 rounded border border-slate-300">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Số Cont *</label>
+            <input type="number" id="m_blTotalCont" required min="1" class="w-full px-2.5 py-1.5 rounded border border-slate-300 font-semibold" oninput="calcRemainingBl()">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Số Kiện</label>
+            <input type="number" id="m_blTotalPackages" min="0" class="w-full px-2.5 py-1.5 rounded border border-slate-300">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Tổng GW (Tấn) *</label>
+            <input type="number" step="0.001" id="m_blTotalGw" required min="0" class="w-full px-2.5 py-1.5 rounded border border-slate-300 font-semibold" oninput="calcRemainingBl()">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Cột DEM / DET</label>
+            <input type="text" id="m_blDemDetAllowance" placeholder="14/14, 14 COMBINED..." class="w-full px-2.5 py-1.5 rounded border border-slate-300" oninput="autoCalcBlDates()">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-blue-50/60 p-2.5 rounded-lg border border-blue-100">
+          <div>
+            <label class="block font-medium text-blue-900 mb-1">Cont Đã Giao</label>
+            <input type="number" id="m_blDeliveredCont" min="0" value="0" class="w-full px-2.5 py-1.5 rounded border border-blue-200" oninput="calcRemainingBl()">
+          </div>
+          <div>
+            <label class="block font-medium text-blue-900 mb-1">Cont Còn Lại</label>
+            <input type="number" id="m_blRemainingCont" readonly class="w-full px-2.5 py-1.5 rounded bg-slate-100 border border-slate-200 font-bold text-blue-700">
+          </div>
+          <div>
+            <label class="block font-medium text-blue-900 mb-1">GW Đã Giao (Tấn)</label>
+            <input type="number" step="0.001" id="m_blDeliveredGw" min="0" value="0" class="w-full px-2.5 py-1.5 rounded border border-blue-200" oninput="calcRemainingBl()">
+          </div>
+          <div>
+            <label class="block font-medium text-blue-900 mb-1">GW Còn Lại (Tấn)</label>
+            <input type="number" step="0.001" id="m_blRemainingGw" readonly class="w-full px-2.5 py-1.5 rounded bg-slate-100 border border-slate-200 font-bold text-blue-700">
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-medium text-rose-700 mb-1">Hạn STO</label>
+            <input type="date" id="m_blStoDate" class="w-full px-2.5 py-1.5 rounded border border-slate-300">
+          </div>
+          <div>
+            <label class="block font-medium text-rose-700 mb-1">Hạn DEM</label>
+            <input type="date" id="m_blDemDate" class="w-full px-2.5 py-1.5 rounded border border-slate-300">
+          </div>
+          <div>
+            <label class="block font-medium text-amber-700 mb-1">Hạn DET</label>
+            <input type="date" id="m_blDetDate" class="w-full px-2.5 py-1.5 rounded border border-slate-300">
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Bãi Trả Rỗng (Depot)</label>
+            <input type="text" id="m_blReturnDepot" placeholder="GFORTUNE, DA NANG TERMINAL..." class="w-full px-2.5 py-1.5 rounded border border-slate-300">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Trạng Thái (Status)</label>
+            <input type="text" id="m_blStatus" placeholder="D/O, A/N, Đã về cảng..." class="w-full px-2.5 py-1.5 rounded border border-slate-300">
+          </div>
+        </div>
+        <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeBlModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">Hủy</button>
+          <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow">Lưu Dữ Liệu B/L</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================== MODAL: THÊM / SỬA CONT ĐÃ BỐC ================== -->
+  <div id="contModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
+        <h3 id="contModalTitle" class="font-bold text-sm">Thêm Thông Tin Bốc Cont</h3>
+        <button onclick="closeContModal()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+      </div>
+      <form id="contForm" onsubmit="saveContainer(event)" class="p-5 overflow-y-auto space-y-4 text-xs">
+        <input type="hidden" id="contEditId">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Ngày Bốc Cont *</label>
+            <input type="date" id="m_contLoadingDate" required class="w-full px-2.5 py-1.5 rounded border border-slate-300" onchange="autoCalcContDetDate()">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Số Cont *</label>
+            <input type="text" id="m_contNumber" required placeholder="CAAU8181500" class="w-full px-2.5 py-1.5 rounded border border-slate-300 uppercase font-semibold">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Loại Cont *</label>
+            <select id="m_contType" required class="w-full px-2.5 py-1.5 rounded border border-slate-300 font-semibold">
+              <option value="40HC">40HC</option>
+              <option value="40DC">40DC</option>
+              <option value="20DC">20DC</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Số B/L Liên Quan *</label>
+            <input type="text" id="m_contBlNumber" required placeholder="EGLV404640475816" onchange="autoFillFromBl(this.value)" class="w-full px-2.5 py-1.5 rounded border border-slate-300 uppercase font-semibold">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Hãng Tàu (Carrier)</label>
+            <input type="text" id="m_contCarrier" class="w-full px-2.5 py-1.5 rounded border border-slate-300">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">ETA</label>
+            <input type="date" id="m_contEta" class="w-full px-2.5 py-1.5 rounded border border-slate-300">
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Số Xe</label>
+            <input type="text" id="m_contTruckPlate" placeholder="43C18847" class="w-full px-2.5 py-1.5 rounded border border-slate-300 uppercase">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Số Mooc</label>
+            <input type="text" id="m_contTrailerPlate" placeholder="43R02580" class="w-full px-2.5 py-1.5 rounded border border-slate-300 uppercase">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Tên Lái Xe</label>
+            <input type="text" id="m_contDriverName" placeholder="Trần Văn Quốc Lợi" class="w-full px-2.5 py-1.5 rounded border border-slate-300">
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Hạn STO</label>
+            <input type="date" id="m_contStoDate" class="w-full px-2.5 py-1.5 rounded border border-slate-300">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Hạn DEM</label>
+            <input type="date" id="m_contDemDate" class="w-full px-2.5 py-1.5 rounded border border-slate-300">
+          </div>
+          <div>
+            <label class="block font-medium text-amber-700 mb-1">Hạn DET *</label>
+            <input type="date" id="m_contDetDate" required class="w-full px-2.5 py-1.5 rounded border border-amber-300 font-semibold bg-amber-50/50">
+          </div>
+        </div>
+        <div class="bg-indigo-50/70 p-3 rounded-lg border border-indigo-100 space-y-2">
+          <label class="block font-bold text-indigo-900">Phân Loại Hàng Đóng Về Cho Từng Cont</label>
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div>
+              <label class="block font-medium text-slate-700 mb-1">Loại Hàng Đóng Về *</label>
+              <select id="m_contReturnCargoType" required onchange="toggleTestlinerOptions()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 font-semibold">
+                <option value="EMPTY">Về Rỗng (EMPTY)</option>
+                <option value="TESTLINER">TESTLINER</option>
+                <option value="PULP">Bột Giấy (PULP)</option>
+              </select>
+            </div>
+            <div id="testlinerSubGroup" class="hidden">
+              <label class="block font-medium text-slate-700 mb-1">Hình Thức Testliner</label>
+              <select id="m_contTestlinerSubtype" class="w-full px-2.5 py-1.5 rounded border border-slate-300">
+                <option value="REUSE">REUSE</option>
+                <option value="TRANSLOADING">TRANSLOADING</option>
+              </select>
+            </div>
+            <div class="flex items-center pt-5">
+              <label class="flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" id="m_contIsLyingPaper" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                <span class="text-xs font-semibold text-slate-800">Giấy Xếp Nằm</span>
+              </label>
+            </div>
+            <div class="flex items-center pt-5">
+              <label class="flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" id="m_contIsPadded" class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4">
+                <span class="text-xs font-semibold text-slate-800">Có Lót Su (Pad)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Ngày Trả Rỗng Thực Tế</label>
+            <input type="date" id="m_contEmptyReturnDate" class="w-full px-2.5 py-1.5 rounded border border-emerald-300 font-semibold text-emerald-800">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Depot Trả Rỗng</label>
+            <input type="text" id="m_contReturnDepot" placeholder="GFORTUNE, TIEN SA..." class="w-full px-2.5 py-1.5 rounded border border-slate-300">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Tình Trạng Hư Hỏng Cont</label>
+            <input type="text" id="m_contDamaged" placeholder="Thủng, rách bạt, móp vách..." class="w-full px-2.5 py-1.5 rounded border border-slate-300">
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Ghi Chú Thêm</label>
+          <input type="text" id="m_contRemark" placeholder="Ghi chú thêm..." class="w-full px-2.5 py-1.5 rounded border border-slate-300">
+        </div>
+        <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeContModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">Hủy</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow">Lưu Dữ Liệu Cont</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JavaScript Xử Lý Nghiệp Vụ SPP Logistics -->
+  <script>
+    const today = new Date();
+    document.getElementById('todayStr').innerText = today.toISOString().split('T')[0];
+
+    const STORAGE_BL_KEY = 'SPP_BL_DATA_V5';
+    const STORAGE_CONT_KEY = 'SPP_CONT_DATA_V5';
+    const STORAGE_SETTINGS_KEY = 'SPP_SETTINGS_V5';
+
+    const DEFAULT_GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1lJ7U4oSTlS8Mv3HxzgzX7PzbU9_LF9fRHFXN39rXG60/edit?gid=922776646#gid=922776646';
+
+    let appSettings = {
+      warningDays: 3,
+      googleSheetUrl: DEFAULT_GOOGLE_SHEET_URL,
+      cloudProvider: 'LOCAL',
+      cloudUrl: '',
+      cloudKey: '',
+      pinCode: ''
+    };
+
+    let blList = [];
+    let contList = [];
+
+    let tempBlImportList = [];
+    let tempDailyImportList = [];
+    let blSortState = { column: '', direction: '' };
+
+    function normalizeDate(val) {
+      if (!val) return '';
+      if (val instanceof Date && !isNaN(val)) return val.toISOString().split('T')[0];
+      if (typeof val === 'number') {
+        const jsDate = new Date(Math.round((val - 25569) * 86400 * 1000));
+        return !isNaN(jsDate) ? jsDate.toISOString().split('T')[0] : '';
+      }
+      const str = String(val).trim();
+      const match = str.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+      if (match) return `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`;
+      return '';
+    }
+
+    function addDaysToDate(dateStr, days) {
+      if (!dateStr || isNaN(days) || days === null) return '';
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return '';
+      const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      if (isNaN(d.getTime())) return '';
+      d.setDate(d.getDate() + Number(days));
+      const yy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yy}-${mm}-${dd}`;
+    }
+
+    function parseDemDetAllowance(strVal) {
+      if (!strVal) return { demDays: null, detDays: null, count: 0 };
+      const nums = String(strVal).match(/\d+/g);
+      if (!nums || nums.length === 0) return { demDays: null, detDays: null, count: 0 };
+      if (nums.length >= 2) return { demDays: parseInt(nums[0], 10), detDays: parseInt(nums[1], 10), count: 2 };
+      return { demDays: parseInt(nums[0], 10), detDays: null, count: 1 };
+    }
+
+    function formatTons(val) {
+      if (val === null || val === undefined || isNaN(val)) return '0.000';
+      return Number(val).toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+    }
+
+    function daysDiffFromToday(targetDateStr) {
+      if (!targetDateStr) return null;
+      const target = new Date(targetDateStr);
+      if (isNaN(target.getTime())) return null;
+      const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+      const t1 = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
+      return Math.round((t1 - t0) / (1000 * 60 * 60 * 24));
+    }
+
+    function switchTab(tabId) {
+      const tabs = ['dashboard', 'bl', 'containers', 'tracking', 'search'];
+      tabs.forEach(t => {
+        const el = document.getElementById(`content-${t}`);
+        const btn = document.getElementById(`tab-${t}`);
+        if (t === tabId) {
+          el.classList.remove('hidden');
+          btn.className = 'tab-btn px-3 sm:px-4 py-2 rounded-lg transition flex items-center space-x-2 text-white bg-blue-600 shadow';
+        } else {
+          el.classList.add('hidden');
+          btn.className = 'tab-btn px-3 sm:px-4 py-2 rounded-lg transition flex items-center space-x-2 text-slate-300 hover:text-white hover:bg-slate-800';
+        }
+      });
+      if (tabId === 'dashboard') renderDashboard();
+      if (tabId === 'bl') renderBlTable();
+      if (tabId === 'containers') renderContTable();
+      if (tabId === 'tracking') renderTrackingTable();
+      if (tabId === 'search') { updateDepotDropdown(); runAdvSearch(); }
+    }
+
+    function navigateToContainersWithBl(blNumber) {
+      switchTab('containers');
+      const searchInput = document.getElementById('contSearchInput');
+      searchInput.value = blNumber;
+      renderContTable();
+    }
+
+    function checkPinSecurityOnLoad() {
+      if (appSettings.pinCode && appSettings.pinCode.trim().length > 0) {
+        document.getElementById('pinLockModal').classList.remove('hidden');
+      }
+    }
+
+    function verifyPinCode() {
+      const entered = document.getElementById('inputPinCode').value.trim();
+      if (entered === appSettings.pinCode) {
+        document.getElementById('pinLockModal').classList.add('hidden');
+      } else {
+        document.getElementById('pinErrorMsg').classList.remove('hidden');
+      }
+    }
+
+    function loadData() {
+      try {
+        const storedSettings = localStorage.getItem(STORAGE_SETTINGS_KEY);
+        if (storedSettings) appSettings = { ...appSettings, ...JSON.parse(storedSettings) };
+      } catch(e) {}
+
+      document.querySelectorAll('.cfgThresholdText').forEach(el => el.innerText = appSettings.warningDays || 3);
+      updateCloudStatusIndicator();
+
+      const storedBl = localStorage.getItem(STORAGE_BL_KEY);
+      const storedCont = localStorage.getItem(STORAGE_CONT_KEY);
+      blList = storedBl ? JSON.parse(storedBl) : [];
+      contList = storedCont ? JSON.parse(storedCont) : [];
+
+      if (appSettings.cloudProvider !== 'LOCAL' && appSettings.cloudUrl) {
+        pullFromCloudSilently();
+      } else {
+        updateCounts();
+        updateDepotDropdown();
+        renderDashboard();
+      }
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_BL_KEY, JSON.stringify(blList));
+      localStorage.setItem(STORAGE_CONT_KEY, JSON.stringify(contList));
+      updateCounts();
+      updateDepotDropdown();
+
+      if (appSettings.cloudProvider !== 'LOCAL' && appSettings.cloudUrl) {
+        pushToCloudSilently();
+      }
+    }
+
+    function updateCounts() {
+      document.getElementById('blCountBadge').innerText = blList.length;
+      document.getElementById('contCountBadge').innerText = contList.length;
+      
+      const pendingTransPulp = contList.filter(c => 
+        !c.emptyReturnDate && 
+        ((c.returnCargoType === 'TESTLINER' && c.testlinerSubtype === 'TRANSLOADING') || c.returnCargoType === 'PULP')
+      ).length;
+      document.getElementById('pendingReturnCountBadge').innerText = pendingTransPulp;
+      document.getElementById('stat-pending-trans').innerText = contList.filter(c => !c.emptyReturnDate && c.returnCargoType === 'TESTLINER' && c.testlinerSubtype === 'TRANSLOADING').length;
+      document.getElementById('stat-pending-pulp').innerText = contList.filter(c => !c.emptyReturnDate && c.returnCargoType === 'PULP').length;
+      document.getElementById('stat-total-unreturned').innerText = contList.filter(c => !c.emptyReturnDate).length;
+    }
+
+    function updateCloudStatusIndicator() {
+      const badge = document.getElementById('cloudStatusBadge');
+      const text = document.getElementById('cloudStatusText');
+      if (appSettings.cloudProvider === 'FIREBASE') {
+        text.innerText = 'Firebase Cloud';
+        badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-medium bg-amber-950 text-amber-300 border border-amber-700';
+      } else if (appSettings.cloudProvider === 'SUPABASE') {
+        text.innerText = 'Supabase Cloud';
+        badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-medium bg-emerald-950 text-emerald-300 border border-emerald-700';
+      } else {
+        text.innerText = 'Cục Bộ (Local)';
+        badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-800 text-slate-300 border border-slate-700';
+      }
+    }
+
+    async function pushToCloudSilently() {
+      try {
+        if (appSettings.cloudProvider === 'FIREBASE') {
+          let url = appSettings.cloudUrl.trim();
+          if (!url.endsWith('/spp_data.json')) {
+            url = url.replace(/\/$/, '') + '/spp_data.json';
+          }
+          if (appSettings.cloudKey) url += `?auth=${encodeURIComponent(appSettings.cloudKey.trim())}`;
+          await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ blList, contList, lastUpdated: new Date().toISOString() })
+          });
+        }
+      } catch (err) {
+        console.warn('Lỗi push cloud:', err);
+      }
+    }
+
+    async function pullFromCloudSilently() {
+      try {
+        if (appSettings.cloudProvider === 'FIREBASE') {
+          let url = appSettings.cloudUrl.trim();
+          if (!url.endsWith('/spp_data.json')) {
+            url = url.replace(/\/$/, '') + '/spp_data.json';
+          }
+          if (appSettings.cloudKey) url += `?auth=${encodeURIComponent(appSettings.cloudKey.trim())}`;
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.blList && Array.isArray(data.blList)) {
+              blList = data.blList;
+              contList = data.contList || [];
+              localStorage.setItem(STORAGE_BL_KEY, JSON.stringify(blList));
+              localStorage.setItem(STORAGE_CONT_KEY, JSON.stringify(contList));
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Lỗi pull cloud:', err);
+      } finally {
+        updateCounts();
+        updateDepotDropdown();
+        renderDashboard();
+      }
+    }
+
+    async function testCloudConnection() {
+      const provider = document.getElementById('cfgCloudProvider').value;
+      const url = document.getElementById('cfgCloudUrl').value.trim();
+      const key = document.getElementById('cfgCloudKey').value.trim();
+
+      if (provider === 'LOCAL') {
+        alert('ℹ️ Đang chọn chế độ lưu cục bộ trên trình duyệt.');
+        return;
+      }
+      if (!url) {
+        alert('❌ Vui lòng nhập Database URL!');
+        return;
+      }
+
+      try {
+        if (provider === 'FIREBASE') {
+          let reqUrl = url.replace(/\/$/, '') + '/test_ping.json';
+          if (key) reqUrl += `?auth=${encodeURIComponent(key)}`;
+          const res = await fetch(reqUrl, { method: 'PUT', body: JSON.stringify({ ping: Date.now() }) });
+          if (!res.ok) throw new Error('Mã phản hồi HTTP: ' + res.status);
+          alert('✅ Kết nối Google Firebase thành công! Dự án hoạt động tốt.');
+        } else if (provider === 'SUPABASE') {
+          let reqUrl = url.replace(/\/$/, '') + '/rest/v1/';
+          const headers = { 'apikey': key, 'Authorization': `Bearer ${key}` };
+          const res = await fetch(reqUrl, { headers });
+          if (!res.ok && res.status !== 404) throw new Error('HTTP ' + res.status);
+          alert('✅ Kết nối Supabase thành công!');
+        }
+      } catch (err) {
+        alert('❌ Không thể kết nối Cloud: ' + err.message + '\nVui lòng kiểm tra lại URL hoặc cấu hình phân quyền (Rules) của Database.');
+      }
+    }
+
+    async function syncWithCloudNow() {
+      await pushToCloudSilently();
+      await pullFromCloudSilently();
+      alert('✅ Đã đồng bộ dữ liệu với Cloud thành công!');
+    }
+
+    function renderDashboard() {
+      const stoDemAlertList = [];
+      let pendingBlCount = 0;
+      let pendingContTotal = 0;
+      let pendingGwTotal = 0;
+      let expiredStoDemCount = 0;
+
+      const thresholdDays = parseInt(appSettings.warningDays, 10) || 3;
+
+      blList.forEach(b => {
+        const remCont = Number(b.remainingCont) || 0;
+        const remGw = Number(b.remainingGw) || 0;
+        if (remCont > 0) {
+          pendingBlCount++;
+          pendingContTotal += remCont;
+          pendingGwTotal += remGw;
+
+          const diffSto = daysDiffFromToday(b.stoDate);
+          const diffDem = daysDiffFromToday(b.demDate);
+
+          const isStoAlert = diffSto !== null && diffSto <= thresholdDays;
+          const isDemAlert = diffDem !== null && diffDem <= thresholdDays;
+
+          if (isStoAlert || isDemAlert) {
+            const isExp = (diffSto !== null && diffSto < 0) || (diffDem !== null && diffDem < 0);
+            if (isExp) expiredStoDemCount++;
+            stoDemAlertList.push({
+              ...b,
+              diffSto,
+              diffDem,
+              severity: isExp ? 'EXPIRED' : 'WARNING'
+            });
+          }
+        }
+      });
+
+      document.getElementById('stat-bl-pending').innerText = pendingBlCount;
+      document.getElementById('stat-cont-pending').innerText = `${pendingContTotal} cont còn tồn bãi`;
+      document.getElementById('stat-gw-pending').innerText = formatTons(pendingGwTotal);
+      document.getElementById('stat-alert-dem-sto').innerText = stoDemAlertList.length;
+      document.getElementById('stat-expired-sto-dem').innerText = expiredStoDemCount;
+
+      const stoDemBody = document.getElementById('stoDemAlertTableBody');
+      stoDemBody.innerHTML = '';
+      if (stoDemAlertList.length === 0) {
+        stoDemBody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-emerald-600 font-medium"><i class="fas fa-check-circle mr-1"></i> An toàn: Không có B/L nào sắp hoặc quá hạn STO/DEM!</td></tr>`;
+      } else {
+        stoDemAlertList.sort((a, b) => (a.severity === 'EXPIRED' ? -1 : 1));
+        stoDemAlertList.forEach(a => {
+          const isExpired = a.severity === 'EXPIRED';
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+          tr.innerHTML = `
+            <td class="px-4 py-3">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isExpired ? 'badge-expired' : 'badge-warning'}">
+                ${isExpired ? 'ĐÃ QUÁ HẠN' : 'SẮP ĐẾN HẠN'}
+              </span>
+            </td>
+            <td class="px-4 py-3 font-bold font-mono text-blue-700">
+              <button onclick="navigateToContainersWithBl('${a.blNumber}')" class="hover:underline">${a.blNumber}</button>
+            </td>
+            <td class="px-4 py-3 font-semibold text-slate-800">${a.carrier || '-'}</td>
+            <td class="px-4 py-3">${a.cargoName} <span class="text-slate-400">(${a.shipper || '-'})</span></td>
+            <td class="px-4 py-3 text-center font-bold text-rose-600">${a.remainingCont} / ${a.totalCont}</td>
+            <td class="px-4 py-3 font-mono">${a.stoDate || '-'}</td>
+            <td class="px-4 py-3 font-mono">${a.demDate || '-'}</td>
+            <td class="px-4 py-3 text-xs font-medium">
+              ${a.diffSto !== null ? `<span class="${a.diffSto < 0 ? 'text-rose-600 font-bold' : 'text-amber-600'}">STO: ${a.diffSto < 0 ? 'Quá ' + Math.abs(a.diffSto) + 'd' : 'Còn ' + a.diffSto + 'd'}</span>` : ''}
+              ${a.diffSto !== null && a.diffDem !== null ? ' • ' : ''}
+              ${a.diffDem !== null ? `<span class="${a.diffDem < 0 ? 'text-rose-600 font-bold' : 'text-amber-600'}">DEM: ${a.diffDem < 0 ? 'Quá ' + Math.abs(a.diffDem) + 'd' : 'Còn ' + a.diffDem + 'd'}</span>` : ''}
+            </td>
+            <td class="px-4 py-3 text-right">
+              <button onclick="openContModalWithBl('${a.blNumber}')" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold shadow">Bốc Cont</button>
+            </td>
+          `;
+          stoDemBody.appendChild(tr);
+        });
+      }
+
+      const detAlertList = [];
+      let totalReturned = 0;
+      let expiredDetCount = 0;
+
+      contList.forEach(c => {
+        if (c.emptyReturnDate) {
+          totalReturned++;
+        } else {
+          const diffDet = daysDiffFromToday(c.detDate);
+          if (diffDet !== null && diffDet <= thresholdDays) {
+            const isExp = diffDet < 0;
+            if (isExp) expiredDetCount++;
+            detAlertList.push({ ...c, diffDet, severity: isExp ? 'EXPIRED' : 'WARNING' });
+          }
+        }
+      });
+
+      document.getElementById('stat-alert-det').innerText = detAlertList.length;
+      document.getElementById('stat-expired-det').innerText = expiredDetCount;
+      document.getElementById('stat-cont-hauled').innerText = `trên ${contList.length} cont đã bốc`;
+      document.getElementById('stat-cont-returned').innerText = totalReturned;
+      document.getElementById('alertCountBadge').innerText = stoDemAlertList.length + detAlertList.length;
+
+      const detBody = document.getElementById('detAlertTableBody');
+      detBody.innerHTML = '';
+      if (detAlertList.length === 0) {
+        detBody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-emerald-600 font-medium"><i class="fas fa-check-circle mr-1"></i> An toàn: Không có container nào trễ hoặc sắp đến hạn DET!</td></tr>`;
+      } else {
+        detAlertList.sort((a, b) => (a.severity === 'EXPIRED' ? -1 : 1));
+        detAlertList.forEach(a => {
+          const isExpired = a.severity === 'EXPIRED';
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+          tr.innerHTML = `
+            <td class="px-4 py-3">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isExpired ? 'badge-expired' : 'badge-warning'}">
+                ${isExpired ? `QUÁ HẠN (${Math.abs(a.diffDet)}d)` : `SẮP HẾT (${a.diffDet}d)`}
+              </span>
+            </td>
+            <td class="px-4 py-3 font-mono font-bold text-slate-900">${a.containerNumber}</td>
+            <td class="px-4 py-3 font-mono text-blue-700">${a.blNumber}</td>
+            <td class="px-4 py-3 font-semibold text-slate-800">${a.carrier || '-'}</td>
+            <td class="px-4 py-3 font-mono">${a.loadingDate || '-'}</td>
+            <td class="px-4 py-3 font-mono font-bold text-rose-600">${a.detDate || '-'}</td>
+            <td class="px-4 py-3">${a.truckPlate || '-'} <span class="text-slate-400">(${a.driverName || '-'})</span></td>
+            <td class="px-4 py-3">${a.returnDepot || '-'}</td>
+            <td class="px-4 py-3 text-right">
+              <button onclick="openQuickReturnModal('${a.id}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold shadow">Nhập Trả Rỗng</button>
+            </td>
+          `;
+          detBody.appendChild(tr);
+        });
+      }
+    }
+
+    function sortBlColumn(colName) {
+      if (blSortState.column === colName) {
+        if (blSortState.direction === 'asc') blSortState.direction = 'desc';
+        else if (blSortState.direction === 'desc') { blSortState.column = ''; blSortState.direction = ''; }
+      } else {
+        blSortState.column = colName;
+        blSortState.direction = 'asc';
+      }
+      renderBlTable();
+    }
+
+    function resetBlFilters() {
+      ['filter_bl_eta', 'filter_bl_blNumber', 'filter_bl_cargoName', 'filter_bl_shipper', 'filter_bl_carrier', 'filter_bl_returnDepot'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      blSortState = { column: '', direction: '' };
+      renderBlTable();
+    }
+
+    function renderBlTable() {
+      document.getElementById('blTableTotal').innerText = blList.length;
+
+      const fEta = (document.getElementById('filter_bl_eta')?.value || '').toLowerCase().trim();
+      const fBl = (document.getElementById('filter_bl_blNumber')?.value || '').toLowerCase().trim();
+      const fCargo = (document.getElementById('filter_bl_cargoName')?.value || '').toLowerCase().trim();
+      const fShipper = (document.getElementById('filter_bl_shipper')?.value || '').toLowerCase().trim();
+      const fCarrier = (document.getElementById('filter_bl_carrier')?.value || '').toLowerCase().trim();
+      const fDepot = (document.getElementById('filter_bl_returnDepot')?.value || '').toLowerCase().trim();
+
+      let filtered = blList.filter(b => {
+        if (fEta && !(b.eta || '').toLowerCase().includes(fEta)) return false;
+        if (fBl && !(b.blNumber || '').toLowerCase().includes(fBl)) return false;
+        if (fCargo && !(b.cargoName || '').toLowerCase().includes(fCargo)) return false;
+        if (fShipper && !(b.shipper || '').toLowerCase().includes(fShipper)) return false;
+        if (fCarrier && !(b.carrier || '').toLowerCase().includes(fCarrier)) return false;
+        if (fDepot && !(b.returnDepot || '').toLowerCase().includes(fDepot)) return false;
+        return true;
+      });
+
+      if (blSortState.column && blSortState.direction) {
+        const col = blSortState.column;
+        const dir = blSortState.direction === 'asc' ? 1 : -1;
+        filtered.sort((a, b) => {
+          let va = a[col] !== undefined ? a[col] : '';
+          let vb = b[col] !== undefined ? b[col] : '';
+          if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+          return String(va).localeCompare(String(vb)) * dir;
+        });
+      }
+
+      ['eta', 'blNumber', 'cargoName', 'shipper', 'carrier', 'totalCont', 'deliveredCont', 'remainingCont', 'totalGw', 'returnDepot'].forEach(c => {
+        const icon = document.getElementById(`sortIcon_${c}`);
+        if (icon) {
+          if (blSortState.column === c) {
+            icon.className = blSortState.direction === 'asc' ? 'fas fa-sort-up text-blue-600' : 'fas fa-sort-down text-blue-600';
+          } else {
+            icon.className = 'fas fa-sort text-slate-400';
+          }
+        }
+      });
+
+      document.getElementById('blTableCount').innerText = filtered.length;
+      const tbody = document.getElementById('blTableBody');
+      const tfoot = document.getElementById('blTableFoot');
+      tbody.innerHTML = '';
+      tfoot.innerHTML = '';
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="19" class="text-center py-8 text-slate-400 font-medium">Không có B/L nào phù hợp với bộ lọc</td></tr>`;
+        return;
+      }
+
+      let sumTotalCont = 0, sumDelivCont = 0, sumRemCont = 0;
+      let sumTotalGw = 0, sumDelivGw = 0, sumRemGw = 0;
+
+      filtered.forEach((b, idx) => {
+        sumTotalCont += (Number(b.totalCont) || 0);
+        sumDelivCont += (Number(b.deliveredCont) || 0);
+        sumRemCont += (Number(b.remainingCont) || 0);
+        sumTotalGw += (Number(b.totalGw) || 0);
+        sumDelivGw += (Number(b.deliveredGw) || 0);
+        sumRemGw += (Number(b.remainingGw) || 0);
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+        tr.innerHTML = `
+          <td class="px-3 py-2 text-slate-400">${idx + 1}</td>
+          <td class="px-3 py-2 font-mono">${b.eta || '-'}</td>
+          <td class="px-3 py-2">
+            <button onclick="navigateToContainersWithBl('${b.blNumber}')" title="Xem danh sách cont đã bốc của B/L này" class="font-bold text-blue-700 hover:text-blue-900 hover:underline font-mono text-left">
+              ${b.blNumber} <i class="fas fa-arrow-right text-[10px] ml-0.5 text-blue-400"></i>
+            </button>
+          </td>
+          <td class="px-3 py-2 font-medium text-slate-800">${b.cargoName}</td>
+          <td class="px-3 py-2 text-slate-600">${b.shipper || '-'}</td>
+          <td class="px-3 py-2 font-semibold text-slate-800">${b.carrier || '-'}</td>
+          <td class="px-3 py-2 text-center font-bold">${b.totalCont}</td>
+          <td class="px-3 py-2 text-center text-emerald-600 font-semibold">${b.deliveredCont}</td>
+          <td class="px-3 py-2 text-center font-bold ${b.remainingCont > 0 ? 'text-rose-600' : 'text-slate-400'}">${b.remainingCont}</td>
+          <td class="px-3 py-2 text-right font-mono font-semibold">${formatTons(b.totalGw)}</td>
+          <td class="px-3 py-2 text-right font-mono text-emerald-700">${formatTons(b.deliveredGw)}</td>
+          <td class="px-3 py-2 text-right font-mono text-rose-700">${formatTons(b.remainingGw)}</td>
+          <td class="px-3 py-2 text-slate-500 font-medium">${b.demDetAllowance || '-'}</td>
+          <td class="px-3 py-2 font-mono text-slate-600">${b.stoDate || '-'}</td>
+          <td class="px-3 py-2 font-mono text-slate-600">${b.demDate || '-'}</td>
+          <td class="px-3 py-2 font-mono text-slate-600">${b.detDate || '-'}</td>
+          <td class="px-3 py-2 text-slate-600">${b.returnDepot || '-'}</td>
+          <td class="px-3 py-2"><span class="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700">${b.status || 'D/O'}</span></td>
+          <td class="px-3 py-2 text-center">
+            <button onclick="editBl('${b.id}')" title="Sửa B/L" class="text-blue-600 hover:text-blue-800 mr-2"><i class="fas fa-edit"></i></button>
+            <button onclick="deleteBl('${b.id}')" title="Xóa B/L" class="text-rose-600 hover:text-rose-800"><i class="fas fa-trash"></i></button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      tfoot.innerHTML = `
+        <tr class="bg-slate-100 font-bold border-t-2 border-slate-300">
+          <td colspan="6" class="px-3 py-2.5 text-right text-blue-900 uppercase">
+            TỔNG CỘNG SAU LỌC (${filtered.length} B/L):
+          </td>
+          <td class="px-3 py-2.5 text-center text-blue-900 text-sm font-bold">${sumTotalCont}</td>
+          <td class="px-3 py-2.5 text-center text-emerald-700 text-sm font-bold">${sumDelivCont}</td>
+          <td class="px-3 py-2.5 text-center text-rose-700 text-sm font-bold">${sumRemCont}</td>
+          <td class="px-3 py-2.5 text-right font-mono text-blue-950">${formatTons(sumTotalGw)}</td>
+          <td class="px-3 py-2.5 text-right font-mono text-emerald-800">${formatTons(sumDelivGw)}</td>
+          <td class="px-3 py-2.5 text-right font-mono text-rose-800">${formatTons(sumRemGw)}</td>
+          <td colspan="7" class="px-3 py-2.5 text-slate-500 font-normal italic">Đơn vị: Cont & Tấn (Tons)</td>
+        </tr>
+      `;
+    }
+
+    function handleBlExcelFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+
+          let targetSheetName = workbook.SheetNames[0];
+          const foundBlSheet = workbook.SheetNames.find(s => s.includes('废纸') || s.toLowerCase().includes('tồn') || s.toLowerCase().includes('bl'));
+          if (foundBlSheet) targetSheetName = foundBlSheet;
+
+          const ws = workbook.Sheets[targetSheetName];
+          const rawRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+          if (!rawRows || rawRows.length < 2) {
+            alert('❌ Sheet không có đủ dữ liệu!');
+            return;
+          }
+
+          let headerIdx = -1;
+          for (let r = 0; r < Math.min(8, rawRows.length); r++) {
+            const rowStr = JSON.stringify(rawRows[r]).toLowerCase();
+            if (rowStr.includes('b/l') || rowStr.includes('b/lno') || rowStr.includes('tên hàng') || rowStr.includes('eta')) {
+              headerIdx = r;
+              break;
+            }
+          }
+          if (headerIdx === -1) headerIdx = 1;
+
+          const header = rawRows[headerIdx].map(c => String(c).trim());
+
+          const colEta = header.findIndex(h => /cập nhật eta|eta/i.test(h));
+          const colCargo = header.findIndex(h => /tên hàng|品名/i.test(h));
+          const colShipper = header.findIndex(h => /nhà cung cấp|shipper|供应商/i.test(h));
+          const colCarrier = header.findIndex(h => /carrier|hãng tàu|船公司/i.test(h));
+          const colBl = header.findIndex(h => /b\/l|tiêu đề|提单号/i.test(h));
+          const colTotalCont = header.findIndex(h => /số lượng cont|箱量/i.test(h));
+          const colTotalPkg = header.findIndex(h => /tổng số kiện|总件数/i.test(h));
+          const colTotalGw = header.findIndex(h => /tổng gw|总重量/i.test(h));
+          const colDelivCont = header.findIndex(h => /cont đã giao|已发箱量/i.test(h));
+          const colRemCont = header.findIndex(h => /cont còn lại|剩余箱量/i.test(h));
+          const colDelivGw = header.findIndex(h => /gw đã giao|已发重量/i.test(h));
+          const colRemGw = header.findIndex(h => /gw còn lại|剩余重量/i.test(h));
+          const colDemDet = header.findIndex(h => /dem det|箱使/i.test(h));
+          const colDepot = header.findIndex(h => /bãi trả rỗng|还空地点/i.test(h));
+          const colSto = header.findIndex(h => /^sto$/i.test(h));
+          const colDem = header.findIndex(h => /^dem$/i.test(h));
+          const colDet = header.findIndex(h => /^det$/i.test(h));
+          const colStatus = header.findIndex(h => /status|tình trạng bill/i.test(h));
+
+          tempBlImportList = [];
+          let duplicateCount = 0;
+
+          for (let r = headerIdx + 1; r < rawRows.length; r++) {
+            const row = rawRows[r];
+            const blNo = colBl !== -1 ? String(row[colBl] || '').trim().toUpperCase() : '';
+            if (!blNo || blNo.length < 5 || blNo === 'UNDEFINED' || blNo === 'B/LNO.') continue;
+
+            const totalCont = parseFloat(row[colTotalCont]) || 0;
+            const delivCont = parseFloat(row[colDelivCont]) || 0;
+            const remCont = colRemCont !== -1 && row[colRemCont] !== '' ? parseFloat(row[colRemCont]) : Math.max(0, totalCont - delivCont);
+
+            const totalGw = parseFloat(row[colTotalGw]) || 0;
+            const delivGw = parseFloat(row[colDelivGw]) || 0;
+            const remGw = colRemGw !== -1 && row[colRemGw] !== '' ? parseFloat(row[colRemGw]) : Math.max(0, totalGw - delivGw);
+
+            const isDuplicate = blList.some(b => b.blNumber.toUpperCase() === blNo);
+            if (isDuplicate) duplicateCount++;
+
+            tempBlImportList.push({
+              rowIdx: r + 1,
+              id: 'BL_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+              blNumber: blNo,
+              eta: colEta !== -1 ? normalizeDate(row[colEta]) : normalizeDate(today),
+              cargoName: colCargo !== -1 && row[colCargo] ? String(row[colCargo]).trim() : 'NO.12',
+              shipper: colShipper !== -1 && row[colShipper] ? String(row[colShipper]).trim() : '',
+              carrier: colCarrier !== -1 && row[colCarrier] ? String(row[colCarrier]).trim() : '',
+              totalCont: totalCont,
+              totalPackages: colTotalPkg !== -1 ? (parseFloat(row[colTotalPkg]) || 0) : 0,
+              totalGw: totalGw,
+              deliveredCont: delivCont,
+              remainingCont: remCont,
+              deliveredGw: delivGw,
+              remainingGw: remGw,
+              demDetAllowance: colDemDet !== -1 && row[colDemDet] ? String(row[colDemDet]).trim() : '',
+              returnDepot: colDepot !== -1 && row[colDepot] ? String(row[colDepot]).trim() : '',
+              stoDate: colSto !== -1 ? normalizeDate(row[colSto]) : '',
+              demDate: colDem !== -1 ? normalizeDate(row[colDem]) : '',
+              detDate: colDet !== -1 ? normalizeDate(row[colDet]) : '',
+              status: colStatus !== -1 && row[colStatus] ? String(row[colStatus]).trim() : 'D/O',
+              isDuplicate: isDuplicate
+            });
+          }
+
+          if (tempBlImportList.length === 0) {
+            alert('⚠️ Không tìm thấy dòng B/L hợp lệ nào trong file!');
+            return;
+          }
+
+          document.getElementById('blImportSummary').innerHTML = `
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p class="font-bold text-sm">Đã đọc thấy: <strong>${tempBlImportList.length}</strong> B/L từ sheet "${targetSheetName}"</p>
+                <p class="text-xs text-emerald-800 mt-0.5">Số B/L mới: <strong>${tempBlImportList.length - duplicateCount}</strong> • Số B/L đã có sẵn: <strong class="text-amber-800">${duplicateCount}</strong></p>
+              </div>
+              <span class="text-[11px] text-emerald-700 font-medium bg-emerald-100/80 px-2.5 py-1 rounded-lg">File: ${file.name}</span>
+            </div>
+          `;
+
+          const tbody = document.getElementById('blImportPreviewTbody');
+          tbody.innerHTML = '';
+          tempBlImportList.slice(0, 100).forEach(b => {
+            const tr = document.createElement('tr');
+            tr.className = b.isDuplicate ? 'bg-amber-50/50' : '';
+            tr.innerHTML = `
+              <td class="px-2.5 py-1.5 font-mono text-slate-400">${b.rowIdx}</td>
+              <td class="px-2.5 py-1.5 font-mono font-bold text-blue-800">${b.blNumber}</td>
+              <td class="px-2.5 py-1.5 font-mono">${b.eta}</td>
+              <td class="px-2.5 py-1.5">${b.cargoName}</td>
+              <td class="px-2.5 py-1.5 font-semibold">${b.carrier}</td>
+              <td class="px-2.5 py-1.5 text-center font-bold">${b.totalCont}</td>
+              <td class="px-2.5 py-1.5 text-center font-bold ${b.remainingCont > 0 ? 'text-rose-600' : 'text-slate-400'}">${b.remainingCont}</td>
+              <td class="px-2.5 py-1.5 text-right font-mono">${formatTons(b.totalGw)}</td>
+              <td class="px-2.5 py-1.5">${b.status}</td>
+              <td class="px-2.5 py-1.5">
+                ${b.isDuplicate ? '<span class="text-amber-700 font-bold">Trùng B/L</span>' : '<span class="text-emerald-700 font-bold">Mới</span>'}
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+          if (tempBlImportList.length > 100) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td colspan="10" class="text-center py-2 text-slate-400 italic">... và còn ${tempBlImportList.length - 100} B/L khác</td>`;
+            tbody.appendChild(tr);
+          }
+
+          document.getElementById('blImportPreviewModal').classList.remove('hidden');
+        } catch (err) {
+          console.error(err);
+          alert('❌ Có lỗi khi đọc file Excel B/L: ' + err.message);
+        }
+        event.target.value = '';
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function closeBlImportPreviewModal() {
+      document.getElementById('blImportPreviewModal').classList.add('hidden');
+      tempBlImportList = [];
+    }
+
+    function confirmCommitBlImport() {
+      const dupOption = document.querySelector('input[name="blDuplicateOption"]:checked')?.value || 'UPDATE';
+      let added = 0;
+      let updated = 0;
+
+      tempBlImportList.forEach(item => {
+        const existIdx = blList.findIndex(b => b.blNumber.toUpperCase() === item.blNumber);
+        if (existIdx >= 0) {
+          if (dupOption === 'UPDATE') {
+            const old = blList[existIdx];
+            blList[existIdx] = {
+              ...old,
+              eta: item.eta || old.eta,
+              cargoName: item.cargoName || old.cargoName,
+              shipper: item.shipper || old.shipper,
+              carrier: item.carrier || old.carrier,
+              totalCont: item.totalCont || old.totalCont,
+              totalPackages: item.totalPackages || old.totalPackages,
+              totalGw: item.totalGw || old.totalGw,
+              deliveredCont: item.deliveredCont !== undefined ? item.deliveredCont : old.deliveredCont,
+              remainingCont: item.remainingCont !== undefined ? item.remainingCont : old.remainingCont,
+              deliveredGw: item.deliveredGw !== undefined ? item.deliveredGw : old.deliveredGw,
+              remainingGw: item.remainingGw !== undefined ? item.remainingGw : old.remainingGw,
+              demDetAllowance: item.demDetAllowance || old.demDetAllowance,
+              returnDepot: item.returnDepot || old.returnDepot,
+              stoDate: item.stoDate || old.stoDate,
+              demDate: item.demDate || old.demDate,
+              detDate: item.detDate || old.detDate,
+              status: item.status || old.status
+            };
+            updated++;
+          }
+        } else {
+          blList.push(item);
+          added++;
+        }
+      });
+
+      saveData();
+      renderBlTable();
+      renderDashboard();
+      closeBlImportPreviewModal();
+      alert(`✅ Nạp thành công!\n- Thêm mới: ${added} B/L\n- Cập nhật: ${updated} B/L`);
+    }
+
+    async function handleDailyLoadingExcelFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        try {
+          const buffer = e.target.result;
+          const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array', cellDates: true });
+
+          let yellowCellMap = {};
+          try {
+            if (window.JSZip) {
+              const zip = await JSZip.loadAsync(buffer);
+              const stylesXml = await zip.file('xl/styles.xml')?.async('text');
+              if (stylesXml) {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(stylesXml, 'text/xml');
+                
+                const fills = xmlDoc.getElementsByTagName('fill');
+                const yellowFillIds = new Set();
+                for (let i = 0; i < fills.length; i++) {
+                  const fg = fills[i].getElementsByTagName('fgColor')[0];
+                  if (fg) {
+                    const rgb = (fg.getAttribute('rgb') || '').toUpperCase();
+                    if (rgb.includes('FFFF00') || rgb === 'FFFFFF00') {
+                      yellowFillIds.add(String(i));
+                    }
+                  }
+                }
+
+                const xfs = xmlDoc.getElementsByTagName('cellXfs')[0]?.getElementsByTagName('xf') || [];
+                const yellowStyleIds = new Set();
+                for (let i = 0; i < xfs.length; i++) {
+                  const fId = xfs[i].getAttribute('fillId');
+                  if (yellowFillIds.has(fId)) {
+                    yellowStyleIds.add(String(i));
+                  }
+                }
+
+                const sheetFiles = Object.keys(zip.files).filter(k => k.startsWith('xl/worksheets/sheet') && k.endsWith('.xml'));
+                for (const sf of sheetFiles) {
+                  const sXml = await zip.file(sf)?.async('text');
+                  if (sXml) {
+                    const sDoc = parser.parseFromString(sXml, 'text/xml');
+                    const cells = sDoc.getElementsByTagName('c');
+                    for (let c = 0; c < cells.length; c++) {
+                      const sId = cells[c].getAttribute('s');
+                      if (yellowStyleIds.has(sId)) {
+                        const cellRef = cells[c].getAttribute('r');
+                        yellowCellMap[cellRef] = true;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } catch (zipErr) {
+            console.warn('Lỗi đọc zip style màu sắc:', zipErr);
+          }
+
+          tempDailyImportList = [];
+          let duplicateCount = 0;
+
+          workbook.SheetNames.forEach(sheetName => {
+            if (sheetName.toLowerCase().includes('innhieu')) return;
+
+            const ws = workbook.Sheets[sheetName];
+            const rawRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+            if (!rawRows || rawRows.length < 2) return;
+
+            const row1Str = JSON.stringify(rawRows[0] || '').toLowerCase();
+            const sheetHasHorizontalTag = row1Str.includes('horizontal') || row1Str.includes('xếp nằm');
+
+            let headerIdx = -1;
+            for (let r = 0; r < Math.min(6, rawRows.length); r++) {
+              const rStr = JSON.stringify(rawRows[r]).toLowerCase();
+              if (rStr.includes('container no') || rStr.includes('số cont') || rStr.includes('pick up') || rStr.includes('truck no')) {
+                headerIdx = r;
+                break;
+              }
+            }
+            if (headerIdx === -1) return;
+
+            const header = rawRows[headerIdx].map(c => String(c).trim());
+
+            const colPickup = header.findIndex(h => /pick up|ngày bốc/i.test(h));
+            const colTruck = header.findIndex(h => /truck no|số xe/i.test(h));
+            const colTrailer = header.findIndex(h => /trailer no|mooc/i.test(h));
+            const colDriver = header.findIndex(h => /driver name|tên lái xe|tài xế/i.test(h));
+            const colCont = header.findIndex(h => /container no|số cont/i.test(h));
+            const colBL = header.findIndex(h => /import b\/l no|b\/l no|số b\/l/i.test(h));
+            const colCarrier = header.findIndex(h => /carrier|hãng tàu/i.test(h));
+            const colPad = header.findIndex(h => /^pad$/i.test(h));
+            const colTypeStuffing = header.findIndex(h => /transloading|reuse/i.test(h));
+            const colCommodity = header.findIndex(h => /^com\.|commodity|hàng đóng/i.test(h));
+            const colRemark = header.findIndex(h => /remark|ghi chú/i.test(h));
+            const colPOD = header.findIndex(h => /pod|depot|bãi/i.test(h));
+            const colDamaged = header.findIndex(h => /damaged|hư hỏng/i.test(h));
+
+            for (let r = headerIdx + 1; r < rawRows.length; r++) {
+              const row = rawRows[r];
+              const rowText = JSON.stringify(row);
+              if (rowText.includes('EMPTY RETURN PLACE') || rowText.includes('TESLINER') || rowText.includes('BULK VSL') || rowText.includes('DEM/DET')) {
+                break;
+              }
+
+              const contNo = colCont !== -1 ? String(row[colCont] || '').trim().toUpperCase() : '';
+              if (!contNo || contNo === 'UNDEFINED' || contNo.length < 5) continue;
+
+              const blNo = colBL !== -1 ? String(row[colBL] || '').trim().toUpperCase() : '';
+              const pickUpDate = colPickup !== -1 ? normalizeDate(row[colPickup]) : normalizeDate(today);
+
+              const comVal = colCommodity !== -1 ? String(row[colCommodity] || '').trim().toUpperCase() : '';
+              const stuffVal = colTypeStuffing !== -1 ? String(row[colTypeStuffing] || '').trim().toUpperCase() : '';
+              const remarkVal = colRemark !== -1 ? String(row[colRemark] || '').toLowerCase() : '';
+
+              let retType = 'EMPTY';
+              let testlinerSub = 'REUSE';
+
+              if (comVal.includes('PULP')) {
+                retType = 'PULP';
+              } else if (comVal.includes('TESTLINER') || stuffVal.includes('REUSE') || stuffVal.includes('TRANSLOADING')) {
+                retType = 'TESTLINER';
+                testlinerSub = stuffVal.includes('TRANSLOADING') ? 'TRANSLOADING' : 'REUSE';
+              } else if (comVal.includes('EMPTY') || stuffVal.includes('EMPTY')) {
+                retType = 'EMPTY';
+              }
+
+              const padVal = colPad !== -1 ? parseFloat(row[colPad]) : 0;
+              const isPadded = (padVal === 1 || padVal > 0);
+
+              const cellRefK = XLSX.utils.encode_cell({ c: (colCommodity !== -1 ? colCommodity : 10), r: r });
+              const isYellowCell = !!yellowCellMap[cellRefK];
+              const isLying = isYellowCell || remarkVal.includes('horizontal') || remarkVal.includes('nằm') || (sheetHasHorizontalTag && retType === 'TESTLINER');
+
+              const blInfo = blList.find(b => b.blNumber.toUpperCase() === blNo);
+              let carrier = colCarrier !== -1 && row[colCarrier] ? String(row[colCarrier]).trim() : (blInfo ? blInfo.carrier : '');
+              let depot = colPOD !== -1 && row[colPOD] ? String(row[colPOD]).trim() : (blInfo ? blInfo.returnDepot : '');
+
+              let detDate = '';
+              if (blInfo) {
+                const { demDays, detDays, count } = parseDemDetAllowance(blInfo.demDetAllowance);
+                if (count >= 2 && detDays !== null && pickUpDate) {
+                  detDate = addDaysToDate(pickUpDate, detDays);
+                } else if (count === 1) {
+                  detDate = blInfo.demDate || addDaysToDate(blInfo.eta, demDays);
+                } else {
+                  detDate = blInfo.detDate || '';
+                }
+              }
+
+              const isDuplicate = contList.some(c => c.containerNumber === contNo && c.loadingDate === pickUpDate);
+              if (isDuplicate) duplicateCount++;
+
+              tempDailyImportList.push({
+                sheetName: sheetName,
+                id: 'CONT_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                loadingDate: pickUpDate || normalizeDate(today),
+                containerNumber: contNo,
+                containerType: '40HC',
+                blNumber: blNo,
+                carrier: carrier,
+                eta: blInfo ? blInfo.eta : '',
+                truckPlate: colTruck !== -1 ? String(row[colTruck] || '').trim().toUpperCase() : '',
+                trailerPlate: colTrailer !== -1 ? String(row[colTrailer] || '').trim().toUpperCase() : '',
+                driverName: colDriver !== -1 ? String(row[colDriver] || '').trim() : '',
+                stoDate: blInfo ? blInfo.stoDate : '',
+                demDate: blInfo ? blInfo.demDate : '',
+                detDate: detDate,
+                returnCargoType: retType,
+                testlinerSubtype: testlinerSub,
+                isLyingPaper: isLying,
+                isPadded: isPadded,
+                emptyReturnDate: '',
+                returnDepot: depot,
+                containerDamaged: colDamaged !== -1 ? String(row[colDamaged] || '').trim() : '',
+                remark: colRemark !== -1 ? String(row[colRemark] || '').trim() : '',
+                isDuplicate: isDuplicate
+              });
+            }
+          });
+
+          if (tempDailyImportList.length === 0) {
+            alert('⚠️ Không tìm thấy dữ liệu container hợp lệ nào trong file!');
+            return;
+          }
+
+          document.getElementById('dailyImportSummary').innerHTML = `
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p class="font-bold text-sm">Đã đọc thấy: <strong>${tempDailyImportList.length}</strong> lượt container từ file</p>
+                <p class="text-xs text-indigo-800 mt-0.5">Số cont mới: <strong>${tempDailyImportList.length - duplicateCount}</strong> • Số cont trùng trong ngày: <strong class="text-amber-800">${duplicateCount}</strong></p>
+              </div>
+              <span class="text-[11px] text-indigo-700 font-medium bg-indigo-100/80 px-2.5 py-1 rounded-lg">File: ${file.name}</span>
+            </div>
+          `;
+
+          const tbody = document.getElementById('dailyImportPreviewTbody');
+          tbody.innerHTML = '';
+          tempDailyImportList.slice(0, 100).forEach(c => {
+            const tr = document.createElement('tr');
+            tr.className = c.isDuplicate ? 'bg-amber-50/50' : '';
+            tr.innerHTML = `
+              <td class="px-2.5 py-1.5 font-medium text-slate-500">${c.sheetName}</td>
+              <td class="px-2.5 py-1.5 font-mono">${c.loadingDate}</td>
+              <td class="px-2.5 py-1.5 font-mono font-bold text-slate-900">${c.containerNumber}</td>
+              <td class="px-2.5 py-1.5 font-mono text-blue-800">${c.blNumber}</td>
+              <td class="px-2.5 py-1.5 font-mono">${c.truckPlate} / ${c.trailerPlate || '-'}</td>
+              <td class="px-2.5 py-1.5">${c.driverName || '-'}</td>
+              <td class="px-2.5 py-1.5 font-semibold">${c.returnCargoType} (${c.testlinerSubtype})</td>
+              <td class="px-2.5 py-1.5 text-center">${c.isLyingPaper ? '<span class="text-rose-600 font-bold">✔ Nằm</span>' : '-'}</td>
+              <td class="px-2.5 py-1.5 text-center">${c.isPadded ? '<span class="text-blue-600 font-bold">✔ Pad</span>' : '-'}</td>
+              <td class="px-2.5 py-1.5">${c.returnDepot || '-'}</td>
+              <td class="px-2.5 py-1.5 text-rose-600 font-medium">${c.containerDamaged || '-'}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+          if (tempDailyImportList.length > 100) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td colspan="11" class="text-center py-2 text-slate-400 italic">... và còn ${tempDailyImportList.length - 100} cont khác</td>`;
+            tbody.appendChild(tr);
+          }
+
+          document.getElementById('dailyImportPreviewModal').classList.remove('hidden');
+        } catch (err) {
+          console.error(err);
+          alert('❌ Có lỗi khi đọc file Daily Loading Report: ' + err.message);
+        }
+        event.target.value = '';
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function closeDailyImportPreviewModal() {
+      document.getElementById('dailyImportPreviewModal').classList.add('hidden');
+      tempDailyImportList = [];
+    }
+
+    function confirmCommitDailyImport() {
+      const dupOption = document.querySelector('input[name="contDuplicateOption"]:checked')?.value || 'UPDATE';
+      let added = 0;
+      let updated = 0;
+
+      tempDailyImportList.forEach(item => {
+        const existIdx = contList.findIndex(c => c.containerNumber === item.containerNumber && c.loadingDate === item.loadingDate);
+        if (existIdx >= 0) {
+          if (dupOption === 'UPDATE') {
+            const old = contList[existIdx];
+            contList[existIdx] = {
+              ...old,
+              ...item,
+              id: old.id,
+              emptyReturnDate: old.emptyReturnDate || item.emptyReturnDate
+            };
+            updated++;
+          }
+        } else {
+          contList.push(item);
+          added++;
+        }
+      });
+
+      saveData();
+      renderContTable();
+      renderTrackingTable();
+      renderDashboard();
+      closeDailyImportPreviewModal();
+      alert(`✅ Nạp thành công!\n- Thêm mới: ${added} lượt container\n- Cập nhật: ${updated} container`);
+    }
+
+    function openSettingsModal() {
+      document.getElementById('cfgCloudProvider').value = appSettings.cloudProvider || 'LOCAL';
+      document.getElementById('cfgCloudUrl').value = appSettings.cloudUrl || '';
+      document.getElementById('cfgCloudKey').value = appSettings.cloudKey || '';
+      document.getElementById('cfgGoogleSheetUrl').value = appSettings.googleSheetUrl || DEFAULT_GOOGLE_SHEET_URL;
+      document.getElementById('cfgWarningDays').value = appSettings.warningDays || 3;
+      document.getElementById('cfgPinCode').value = appSettings.pinCode || '';
+      toggleCloudInputs();
+      document.getElementById('settingsModal').classList.remove('hidden');
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settingsModal').classList.add('hidden');
+    }
+
+    function toggleCloudInputs() {
+      const p = document.getElementById('cfgCloudProvider').value;
+      const urlG = document.getElementById('cloudUrlGroup');
+      const keyG = document.getElementById('cloudKeyGroup');
+      if (p === 'LOCAL') {
+        urlG.classList.add('hidden');
+        keyG.classList.add('hidden');
+      } else {
+        urlG.classList.remove('hidden');
+        keyG.classList.remove('hidden');
+      }
+    }
+
+    function saveAllSettings() {
+      appSettings.cloudProvider = document.getElementById('cfgCloudProvider').value;
+      appSettings.cloudUrl = document.getElementById('cfgCloudUrl').value.trim();
+      appSettings.cloudKey = document.getElementById('cfgCloudKey').value.trim();
+      appSettings.googleSheetUrl = document.getElementById('cfgGoogleSheetUrl').value.trim() || DEFAULT_GOOGLE_SHEET_URL;
+      appSettings.warningDays = parseInt(document.getElementById('cfgWarningDays').value, 10) || 3;
+      appSettings.pinCode = document.getElementById('cfgPinCode').value.trim();
+
+      localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(appSettings));
+      document.querySelectorAll('.cfgThresholdText').forEach(el => el.innerText = appSettings.warningDays);
+      updateCloudStatusIndicator();
+      closeSettingsModal();
+      renderDashboard();
+      alert('✅ Đã lưu thành công cài đặt hệ thống!');
+    }
+
+    function downloadBackupJson() {
+      const backupData = {
+        version: 'SPP_V5',
+        exportedAt: new Date().toISOString(),
+        settings: appSettings,
+        blList: blList,
+        contList: contList
+      };
+      const jsonStr = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `SPP_LOGISTICS_BACKUP_${today.toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function restoreBackupJson(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (!parsed.blList && !parsed.contList) {
+            throw new Error('File không chứa dữ liệu SPP hợp lệ!');
+          }
+          if (confirm(`Xác nhận phục hồi dữ liệu từ file sao lưu?\n- Số B/L: ${(parsed.blList || []).length}\n- Số Container: ${(parsed.contList || []).length}`)) {
+            blList = parsed.blList || [];
+            contList = parsed.contList || [];
+            if (parsed.settings) appSettings = { ...appSettings, ...parsed.settings };
+            saveData();
+            localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(appSettings));
+            closeSettingsModal();
+            loadData();
+            alert('✅ Đã phục hồi dữ liệu thành công!');
+          }
+        } catch (err) {
+          alert('❌ Lỗi khi đọc file sao lưu: ' + err.message);
+        }
+        event.target.value = '';
+      };
+      reader.readAsText(file);
+    }
+
+    function resetToSampleData() {
+      if (confirm('Khôi phục bộ dữ liệu mẫu ban đầu?')) {
+        localStorage.removeItem(STORAGE_BL_KEY);
+        localStorage.removeItem(STORAGE_CONT_KEY);
+        blList = [
+          { id: 'BL_1', blNumber: 'EGLV404640475816', eta: '2026-09-21', cargoName: 'NO.12', shipper: 'WONDERFUL', carrier: 'EMC', totalCont: 10, totalPackages: 309, totalGw: 247.830, deliveredCont: 0, remainingCont: 10, deliveredGw: 0, remainingGw: 247.830, demDetAllowance: '12/12', returnDepot: 'G-FORTUNE', stoDate: '2026-10-05', demDate: '2026-10-02', detDate: '2026-10-11', status: 'D/O' },
+          { id: 'BL_2', blNumber: 'EGLV404640535062', eta: '2026-10-07', cargoName: 'NO.12', shipper: 'POWERMOND', carrier: 'EMC', totalCont: 15, totalPackages: 548, totalGw: 362.580, deliveredCont: 0, remainingCont: 15, deliveredGw: 0, remainingGw: 362.580, demDetAllowance: '12/12', returnDepot: 'G-FORTUNE', stoDate: '2026-10-21', demDate: '2026-10-20', detDate: '', status: 'D/O' },
+          { id: 'BL_3', blNumber: 'BSE0336695', eta: '2026-10-10', cargoName: 'NO.12', shipper: 'VIPA LAUSANNE', carrier: 'CMA', totalCont: 10, totalPackages: 338, totalGw: 210.340, deliveredCont: 0, remainingCont: 10, deliveredGw: 0, remainingGw: 210.340, demDetAllowance: '14/3', returnDepot: 'TSA', stoDate: '2026-10-24', demDate: '2026-10-23', detDate: '', status: 'D/O' }
+        ];
+        contList = [
+          { id: 'C_1', loadingDate: '2026-09-30', containerNumber: 'CAAU8181500', containerType: '40HC', blNumber: 'EGLV404640475816', carrier: 'EMC', truckPlate: '43C18847', trailerPlate: '43R02580', driverName: 'Trần Văn Quốc Lợi', detDate: '2026-10-11', returnCargoType: 'TESTLINER', testlinerSubtype: 'REUSE', isLyingPaper: false, isPadded: false, emptyReturnDate: '2026-10-03', returnDepot: 'SHEKOU', containerDamaged: '' },
+          { id: 'C_2', loadingDate: '2026-09-30', containerNumber: 'EGHU8441052', containerType: '40HC', blNumber: 'EGLV404640475816', carrier: 'EMC', truckPlate: '43H34530', trailerPlate: '43RM05592', driverName: 'Phan Thi', detDate: '2026-10-11', returnCargoType: 'TESTLINER', testlinerSubtype: 'TRANSLOADING', isLyingPaper: true, isPadded: false, emptyReturnDate: '', returnDepot: 'SHEKOU', containerDamaged: 'Side dent 60x60cm, torn rubber' },
+          { id: 'C_3', loadingDate: '2026-10-05', containerNumber: 'TRHU7961821', containerType: '40HC', blNumber: 'EGLV400600261057', carrier: 'EMC', truckPlate: '43H18473', trailerPlate: '43RM01475', driverName: 'Huỳnh Huy Hoàng', detDate: '2026-10-18', returnCargoType: 'PULP', testlinerSubtype: '', isLyingPaper: false, isPadded: true, emptyReturnDate: '', returnDepot: 'TSA', containerDamaged: '' }
+        ];
+        saveData();
+        renderBlTable();
+        renderContTable();
+        renderTrackingTable();
+        renderDashboard();
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      togglePeriodInputs();
+      loadData();
+      checkPinSecurityOnLoad();
+    });
+  </script>
+</body>
+</html>
