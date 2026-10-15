@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SPP LOGISTICS MANAGEMENT - Quản Lý Hàng Tồn Cảng & Vận Tải Cont</title>
   <!-- Tailwind CSS CDN -->
-  <script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=4uTJRXZaliMFvDOsIClbfsOBphnotPdHLGxUORvxrOgQQz-wmPed7THlRAO8rypedSdtCHzlgKgE729UhZKSvpNIdNWfUsYfBu0kQ6SNiQz0PN6FLwRXeVcTrr9OX0Enje1DMgpoP4mm6xuqYsHZs2sPx5Ot0cMdmiVqdkrcIF1h5nGDwsoGU_ER6NOr_BHSV4reqJthWIQcRjJtSk2FKPhu4NbFwTwfFIf91015KTqyQUYaEwJjF4YITrZvwQDfL7ylLvL86yB-rAZiFW21fApglK_rbbH5JTzVSl7qpo7qCdf-gEIOZkdU2tHWUu3J81Y_rdPjXiqXGz-oVTMK0g" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="https://gc.kis.v2.scr.kaspersky-labs.com/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9jb250cmlidXRpb24udXNlcmNvbnRlbnQuZ29vZ2xlLmNvbS9kb3dubG9hZD9jPUNneGlZWEprWDNOMGIzSmhaMlVTVUJJTmNtVnpjRzl1YzJWZlpHRjBZUm9fQ2pCbE1UbGlZVEV6TkRJNU1qWXpNR0l5TURBd05qVmtZelExTVdZMk0yVTFNekE0TXpReVptSmtZV0V3WlRVd1pEY1NDeElIRUp6YndlblpBeGdCJmZpbGVuYW1lPWluZGV4Lmh0bWwmb3BpPTEwMzEzNTA1MCZhdXRodXNlcj0y"/><script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS CDN xử lý đọc/ghi file Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- JSZip CDN hỗ trợ đọc sâu định dạng màu sắc cell và xử lý Excel chuẩn -->
@@ -1279,17 +1279,48 @@
     window._memStorage = window._memStorage || {};
     const safeStorage = {
       getItem(k) {
-        try { return window.safeStorage.getItem(k); } catch(e) { return window._memStorage[k] || null; }
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            const v = window.localStorage.getItem(k);
+            if (v !== null && v !== undefined) return v;
+          }
+        } catch(e) {
+          console.warn('Không thể đọc localStorage:', e);
+        }
+        return window._memStorage[k] !== undefined ? window._memStorage[k] : null;
       },
       setItem(k, v) {
-        window._memStorage[k] = String(v);
-        try { window.safeStorage.setItem(k, v); } catch(e) {}
+        const strVal = String(v);
+        window._memStorage[k] = strVal;
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(k, strVal);
+          }
+        } catch(e) {
+          console.warn('Không thể ghi localStorage:', e);
+        }
       },
       removeItem(k) {
         delete window._memStorage[k];
-        try { window.safeStorage.removeItem(k); } catch(e) {}
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.removeItem(k);
+          }
+        } catch(e) {}
       }
     };
+
+    function normalizeFirebaseUrl(rawUrl) {
+      let u = (rawUrl || '').trim();
+      if (!u) return '';
+      const consoleMatch = u.match(/console\.firebase\.google\.com\/.*?\/database\/([a-zA-Z0-9-_]+)/);
+      if (consoleMatch) {
+        const dbName = consoleMatch[1];
+        u = 'https://' + dbName + '.asia-southeast1.firebasedatabase.app';
+      }
+      u = u.replace(/\/data(\/.*)?$/, '').replace(/\/rules(\/.*)?$/, '').replace(/\/spp_data\.json$/, '').replace(/\/$/, '');
+      return u;
+    }
 
     const DEFAULT_GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1lJ7U4oSTlS8Mv3HxzgzX7PzbU9_LF9fRHFXN39rXG60/edit?gid=922776646#gid=922776646';
 
@@ -1779,12 +1810,15 @@
         contList = [];
       }
 
+      updateCounts();
+      updateDepotDropdown();
+      renderDashboard();
+      renderBlTable();
+      renderContTable();
+      renderTrackingTable();
+
       if (appSettings.cloudProvider !== 'LOCAL' && appSettings.cloudUrl) {
         pullFromCloudSilently();
-      } else {
-        updateCounts();
-        updateDepotDropdown();
-        renderDashboard();
       }
     }
 
@@ -1849,10 +1883,9 @@
     async function pushToCloudSilently() {
       try {
         if (appSettings.cloudProvider === 'FIREBASE') {
-          let url = appSettings.cloudUrl.trim();
-          if (!url.endsWith('/spp_data.json')) {
-            url = url.replace(/\/$/, '') + '/spp_data.json';
-          }
+          let url = normalizeFirebaseUrl(appSettings.cloudUrl);
+          if (!url) return;
+          url = url + '/spp_data.json';
           if (appSettings.cloudKey) url += `?auth=${encodeURIComponent(appSettings.cloudKey.trim())}`;
           const res = await fetch(url, {
             method: 'PUT',
@@ -1907,19 +1940,26 @@
     async function pullFromCloudSilently() {
       try {
         if (appSettings.cloudProvider === 'FIREBASE') {
-          let url = appSettings.cloudUrl.trim();
-          if (!url.endsWith('/spp_data.json')) {
-            url = url.replace(/\/$/, '') + '/spp_data.json';
-          }
+          let url = normalizeFirebaseUrl(appSettings.cloudUrl);
+          if (!url) return;
+          url = url + '/spp_data.json';
           if (appSettings.cloudKey) url += `?auth=${encodeURIComponent(appSettings.cloudKey.trim())}`;
           const res = await fetch(url);
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const data = await res.json();
-          if (data && Array.isArray(data.blList)) {
-            blList = data.blList;
-            contList = Array.isArray(data.contList) ? data.contList : [];
-            safeStorage.setItem(STORAGE_BL_KEY, JSON.stringify(blList));
-            safeStorage.setItem(STORAGE_CONT_KEY, JSON.stringify(contList));
+          if (data && (Array.isArray(data.blList) || Array.isArray(data.contList))) {
+            const cloudBl = Array.isArray(data.blList) ? data.blList : [];
+            const cloudCont = Array.isArray(data.contList) ? data.contList : [];
+            if (cloudBl.length > 0 || cloudCont.length > 0) {
+              blList = cloudBl;
+              contList = cloudCont;
+              safeStorage.setItem(STORAGE_BL_KEY, JSON.stringify(blList));
+              safeStorage.setItem(STORAGE_CONT_KEY, JSON.stringify(contList));
+            } else if (blList.length > 0 || contList.length > 0) {
+              pushToCloudSilently();
+            }
+          } else if (data === null && (blList.length > 0 || contList.length > 0)) {
+            pushToCloudSilently();
           }
           updateCloudStatusIndicator();
         } else if (appSettings.cloudProvider === 'SUPABASE') {
@@ -1986,11 +2026,13 @@
 
       try {
         if (provider === 'FIREBASE') {
-          let reqUrl = url.replace(/\/$/, '') + '/test_ping.json';
+          let reqUrl = normalizeFirebaseUrl(url);
+          if (!reqUrl) { alert('❌ Database URL không hợp lệ!'); return; }
+          reqUrl = reqUrl + '/test_ping.json';
           if (key) reqUrl += `?auth=${encodeURIComponent(key)}`;
           const res = await fetch(reqUrl, { method: 'PUT', body: JSON.stringify({ ping: Date.now() }) });
           if (!res.ok) throw new Error('HTTP ' + res.status);
-          alert('✅ Kết nối Google Firebase thành công!');
+          alert('✅ Kết nối Google Firebase thành công!\nĐường link kết nối chuẩn: ' + normalizeFirebaseUrl(url));
         } else if (provider === 'SUPABASE') {
           if (!key) { alert('❌ Vui lòng nhập Supabase Anon API Key!'); return; }
           let reqUrl = url.replace(/\/$/, '') + '/rest/v1/spp_bl_inventory?select=id&limit=1';
@@ -4264,7 +4306,12 @@
 
     function saveAllSettings() {
       appSettings.cloudProvider = document.getElementById('cfgCloudProvider').value;
-      appSettings.cloudUrl = document.getElementById('cfgCloudUrl').value.trim();
+      let rawUrl = document.getElementById('cfgCloudUrl').value.trim();
+      if (appSettings.cloudProvider === 'FIREBASE') {
+        rawUrl = normalizeFirebaseUrl(rawUrl);
+      }
+      appSettings.cloudUrl = rawUrl;
+      document.getElementById('cfgCloudUrl').value = rawUrl;
       appSettings.cloudKey = document.getElementById('cfgCloudKey').value.trim();
       appSettings.googleSheetUrl = document.getElementById('cfgGoogleSheetUrl').value.trim() || DEFAULT_GOOGLE_SHEET_URL;
       appSettings.overwriteReturnDate = document.getElementById('cfgOverwriteReturnDate').checked;
@@ -4276,10 +4323,19 @@
       document.querySelectorAll('.cfgThresholdText').forEach(el => el.innerText = appSettings.warningDays);
       updateCloudStatusIndicator();
       closeSettingsModal();
+
+      if (appSettings.cloudProvider !== 'LOCAL' && appSettings.cloudUrl) {
+        if (blList.length > 0 || contList.length > 0) {
+          pushToCloudSilently();
+        } else {
+          pullFromCloudSilently();
+        }
+      }
+
       renderDashboard();
       renderContTable();
       renderTrackingTable();
-      alert('✅ Đã lưu cài đặt hệ thống!');
+      alert('✅ Đã lưu cài đặt hệ thống và cấu hình đồng bộ!');
     }
 
     function downloadBackupJson() {
