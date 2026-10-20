@@ -222,9 +222,9 @@
         <!-- 8. Tổng số container chưa trả rỗng -->
         <div class="bg-white p-3.5 rounded-xl border border-amber-200 shadow-sm flex items-center justify-between">
           <div>
-            <p class="text-[11px] font-bold text-amber-800 uppercase">8. Tổng Cont Chưa Trả Rỗng</p>
+            <p class="text-[11px] font-bold text-amber-800 uppercase" title="Không tính container thuộc nhóm TESTLINER — REUSE">8. Tổng Cont Chưa Trả Rỗng</p>
             <p id="stat-total-unreturned" class="text-2xl font-black text-amber-900 mt-0.5">0</p>
-            <p class="text-[11px] text-rose-600 mt-0.5">Cảnh báo DET: <strong id="stat-alert-det">0</strong> (<span id="stat-expired-det">0</span> quá hạn)</p>
+            <p class="text-[11px] text-rose-600 mt-0.5">Trừ REUSE • Cảnh báo DET: <strong id="stat-alert-det">0</strong> (<span id="stat-expired-det">0</span> quá hạn)</p>
           </div>
           <div class="w-10 h-10 bg-amber-50 text-amber-700 rounded-xl flex items-center justify-center text-lg">
             <i class="fas fa-clock"></i>
@@ -595,6 +595,45 @@
         </div>
       </div>
 
+      <!-- Banner cảnh báo Container thiếu thông tin phân loại hàng & Sai lệch hạn DET -->
+      <div id="contAlertsContainer" class="space-y-2 hidden">
+        <div id="contMissingCargoBanner" class="hidden bg-amber-50 border border-amber-300 rounded-xl p-3 text-xs text-amber-950 flex flex-wrap items-center justify-between gap-2 shadow-sm">
+          <div class="flex items-center space-x-2">
+            <i class="fas fa-exclamation-triangle text-amber-600 text-base"></i>
+            <div>
+              <span class="font-bold">Cảnh báo container thiếu thông tin phân loại hàng đóng về:</span>
+              <strong id="contMissingCargoCount" class="text-rose-700 text-sm mx-1">0</strong> container cần kiểm tra (chưa có loại hàng đóng về hoặc TESTLINER chưa xác định REUSE / TRANSLOADING).
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button type="button" onclick="filterContBySpecialAlert('MISSING_CARGO')" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg shadow-sm transition">
+              <i class="fas fa-filter mr-1"></i>Lọc trên bảng
+            </button>
+            <button type="button" onclick="openContMissingCargoModal()" class="px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-900 border border-amber-400 font-semibold rounded-lg transition">
+              <i class="fas fa-list-ul mr-1"></i>Xem danh sách chi tiết
+            </button>
+          </div>
+        </div>
+
+        <div id="contDetMismatchBanner" class="hidden bg-rose-50 border border-rose-300 rounded-xl p-3 text-xs text-rose-950 flex flex-wrap items-center justify-between gap-2 shadow-sm">
+          <div class="flex items-center space-x-2">
+            <i class="fas fa-calendar-xmark text-rose-600 text-base"></i>
+            <div>
+              <span class="font-bold">Cảnh báo sai lệch hạn DET (B/L vs Container):</span>
+              <strong id="contDetMismatchCount" class="text-rose-700 text-sm mx-1">0</strong> container (thuộc <strong id="contDetMismatchBlCount">0</strong> B/L) có hạn DET khác với hạn DET của B/L tại Module 2 hoặc không thống nhất trong cùng B/L.
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button type="button" onclick="filterContBySpecialAlert('DET_MISMATCH')" class="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-lg shadow-sm transition">
+              <i class="fas fa-filter mr-1"></i>Lọc trường hợp sai lệch
+            </button>
+            <button type="button" onclick="openContDetMismatchModal()" class="px-2.5 py-1 bg-white hover:bg-rose-100 text-rose-900 border border-rose-400 font-semibold rounded-lg transition">
+              <i class="fas fa-list-check mr-1"></i>Danh sách đối chiếu DET
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Bảng dữ liệu Cont kèm Bộ lọc Loại hàng, POD, Chemical, HQ Pulp & Ngày bốc -->
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="p-3 border-b border-slate-100 flex flex-wrap gap-2 items-center justify-between bg-slate-50 text-xs">
@@ -609,8 +648,10 @@
               <option value="">-- Tất cả Loại Hàng --</option>
               <option value="TESTLINER_REUSE">TESTLINER REUSE</option>
               <option value="TESTLINER_TRANSLOADING">TESTLINER TRANSLOADING</option>
+              <option value="TESTLINER_UNSPECIFIED">TESTLINER (Chưa rõ REUSE/TRANS)</option>
               <option value="PULP">PULP (Bột giấy)</option>
               <option value="EMPTY">EMPTY (Về rỗng)</option>
+              <option value="MISSING_CARGO">⚠️ Thiếu thông tin phân loại hàng</option>
             </select>
             <select id="contChemFilter" onchange="renderContTable()" class="px-2 py-1.5 rounded-lg border border-slate-300 bg-white font-medium text-slate-700">
               <option value="">-- Chemical / Equip --</option>
@@ -621,6 +662,11 @@
               <option value="">-- Hải quan (PULP) --</option>
               <option value="YES">Có Hải quan (PULP)</option>
               <option value="NO">Không Hải quan (PULP)</option>
+            </select>
+            <select id="contPadFilter" onchange="renderContTable()" class="px-2 py-1.5 rounded-lg border border-slate-300 bg-white font-medium text-slate-700">
+              <option value="">-- Lót Su (Tất cả) --</option>
+              <option value="YES">Có lót su</option>
+              <option value="NO">Không lót su</option>
             </select>
             <div class="flex items-center space-x-1 bg-white px-2 py-1 rounded-lg border border-slate-300">
               <span class="text-slate-500">Ngày bốc:</span>
@@ -633,6 +679,11 @@
               <option value="UNRETURNED">Chưa trả rỗng</option>
               <option value="RETURNED">Đã trả rỗng</option>
             </select>
+            <select id="contSpecialAlertFilter" onchange="renderContTable()" class="px-2 py-1.5 rounded-lg border border-slate-300 bg-white font-medium text-rose-700">
+              <option value="">-- Cảnh báo dữ liệu --</option>
+              <option value="MISSING_CARGO">⚠️ Thiếu phân loại hàng đóng về</option>
+              <option value="DET_MISMATCH">⚠️ Sai lệch hạn DET (B/L ≠ Cont)</option>
+            </select>
             <button onclick="resetContTabFilters()" class="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition">Xóa lọc</button>
           </div>
           <div class="text-xs text-slate-600">
@@ -644,7 +695,12 @@
             <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0 z-20 shadow-sm">
               <tr>
                 <th data-col="stt" class="px-2 py-2">STT</th>
-                <th data-col="loadingDate" class="px-2 py-2">Ngày Bốc</th>
+                <th data-col="loadingDate" class="px-2 py-2 min-w-[96px]">
+                  <div class="flex items-center justify-between cursor-pointer select-none hover:text-blue-700" onclick="toggleContLoadingDateSort()" title="Nhấn để sắp xếp theo Ngày bốc container (Tăng dần / Giảm dần)">
+                    <span>Ngày Bốc</span>
+                    <i id="sortIcon_cont_loadingDate" class="fas fa-sort text-slate-400 ml-1"></i>
+                  </div>
+                </th>
                 <th data-col="containerNumber" class="px-2 py-2 sticky-col-cont">Số Cont 📌</th>
                 <th data-col="blNumber" class="px-2 py-2 sticky-col-bl-after-cont">Số B/L 📌</th>
                 <th data-col="containerType" class="px-2 py-2">Loại</th>
@@ -896,8 +952,14 @@
             </div>
             <div class="flex items-center space-x-1.5">
               <select id="sumDiscrepancyFilter" onchange="renderModule5Summary()" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 bg-white font-medium text-rose-700">
-                <option value="">-- Mọi trạng thái khớp --</option>
-                <option value="MISMATCH">⚠️ Có cảnh báo lệch số liệu</option>
+                <option value="">-- Mọi trạng thái đối chiếu --</option>
+                <option value="MISMATCH">⚠️ Mọi cảnh báo lệch số liệu</option>
+                <option value="MULTI_LOAD_DATE">📅 B/L có từ 2 ngày bốc trở lên</option>
+                <option value="ATA_ETA_MISMATCH">🔄 Sai lệch ngày ATA ≠ ETA (Module 2)</option>
+                <option value="MISSING_ETA">⏳ Thiếu ngày ETA tại Module 2</option>
+                <option value="MISSING_ATA">⏳ Thiếu ngày ATA tại Module Tổng hợp</option>
+                <option value="BL_NOT_FOUND">❓ Không tìm thấy B/L tại Module 2</option>
+                <option value="COUNT_MISMATCH">🔢 Lệch tổng số lượng container</option>
               </select>
               <button type="button" onclick="resetModule5Filters()" class="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-semibold whitespace-nowrap">Xóa lọc</button>
             </div>
@@ -905,6 +967,41 @@
 
           <!-- Thẻ điều kiện đang lọc -->
           <div id="sumActiveFilterTags" class="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-slate-100"></div>
+
+          <!-- Khu vực Chỉ báo Cảnh báo B/L có >= 2 ngày bốc & Đối chiếu ATA/ETA -->
+          <div id="sumAlertsBar" class="grid grid-cols-1 lg:grid-cols-2 gap-2.5 pt-2 border-t border-slate-100">
+            <div class="bg-amber-50/90 border border-amber-300 rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2 text-amber-950">
+              <div class="flex items-center space-x-2">
+                <i class="fas fa-calendar-week text-amber-600 text-sm"></i>
+                <div>
+                  <span class="font-bold">B/L bốc từ 2 ngày trở lên:</span>
+                  <strong id="sumMultiDateBlCount" class="text-amber-800 text-sm mx-1">0</strong> B/L
+                  <span class="text-[11px] text-amber-700">(Kiểm tra tách dòng theo ngày bốc)</span>
+                </div>
+              </div>
+              <div class="flex items-center space-x-1.5">
+                <button type="button" onclick="applySumQuickAlertFilter('MULTI_LOAD_DATE')" class="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-semibold text-[11px] shadow-sm">Lọc B/L ≥ 2 ngày bốc</button>
+                <button type="button" onclick="openSumMultiLoadDateModal()" class="px-2 py-1 bg-white hover:bg-amber-100 text-amber-900 border border-amber-400 rounded font-semibold text-[11px]">Danh sách chi tiết</button>
+              </div>
+            </div>
+
+            <div class="bg-indigo-50/90 border border-indigo-300 rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2 text-indigo-950">
+              <div class="flex items-center space-x-2">
+                <i class="fas fa-code-compare text-indigo-600 text-sm"></i>
+                <div>
+                  <span class="font-bold">Đối chiếu ATA (Module 5) &amp; ETA (Module 2):</span>
+                  <span class="ml-1">Khác biệt: <strong id="sumAtaEtaMismatchCount" class="text-rose-700 text-sm">0</strong></span> •
+                  <span>Thiếu ATA: <strong id="sumMissingAtaCount" class="text-amber-700">0</strong></span> •
+                  <span>Thiếu ETA: <strong id="sumMissingEtaCount" class="text-amber-700">0</strong></span> •
+                  <span>Chưa có B/L: <strong id="sumMissingBlRefCount" class="text-slate-700">0</strong></span>
+                </div>
+              </div>
+              <div class="flex items-center space-x-1.5">
+                <button type="button" onclick="applySumQuickAlertFilter('ATA_ETA_MISMATCH')" class="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded font-semibold text-[11px] shadow-sm">Lọc lệch ATA/ETA</button>
+                <button type="button" onclick="openSumAtaEtaModal()" class="px-2 py-1 bg-white hover:bg-indigo-100 text-indigo-900 border border-indigo-400 rounded font-semibold text-[11px]">Bảng đối chiếu</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Khu vực Biểu Đồ Trực Quan (Thay đổi động theo bộ lọc) -->
@@ -996,7 +1093,12 @@
                 </tr>
                 <tr>
                   <th data-col="stt" class="px-2 py-2 border-b border-slate-200">STT</th>
-                  <th data-col="loadingDate" class="px-2 py-2 border-b border-slate-200 min-w-[88px]">Ngày Bốc Cont</th>
+                  <th data-col="loadingDate" class="px-2 py-2 border-b border-slate-200 min-w-[98px]">
+                    <div class="flex items-center justify-between cursor-pointer select-none hover:text-indigo-700" onclick="toggleSumLoadingDateSort()" title="Nhấn để sắp xếp theo Ngày bốc container (Tăng dần / Giảm dần)">
+                      <span>Ngày Bốc Cont</span>
+                      <i id="sortIcon_sum_loadingDate" class="fas fa-sort-up text-indigo-600 ml-1"></i>
+                    </div>
+                  </th>
                   <th data-col="blNumber" class="px-2 py-2 border-b border-slate-200 min-w-[136px] sticky-col-bl">Số B/L 📌</th>
                   <th data-col="carrier" class="px-2 py-2 border-b border-slate-200 min-w-[64px]">Carrier</th>
                   <th data-col="ata" class="px-2 py-2 border-b border-slate-200 min-w-[86px]">ATA</th>
@@ -1713,8 +1815,9 @@
           <label class="block font-bold text-indigo-900">Phân Loại Hàng Đóng Về, Hải Quan (PULP), Chemical &amp; Quy Cách</label>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label class="block font-medium text-slate-700 mb-1">Loại Hàng Đóng Về *</label>
-              <select id="m_contReturnCargoType" required onchange="onContCargoTypeChange()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 font-semibold bg-white">
+              <label class="block font-medium text-slate-700 mb-1">Loại Hàng Đóng Về</label>
+              <select id="m_contReturnCargoType" onchange="onContCargoTypeChange()" class="w-full px-2.5 py-1.5 rounded border border-slate-300 font-semibold bg-white">
+                <option value="">-- Chưa xác định (Trống) --</option>
                 <option value="TESTLINER">TESTLINER</option>
                 <option value="PULP">Bột Giấy (PULP)</option>
                 <option value="EMPTY">Về Rỗng (EMPTY)</option>
@@ -1723,6 +1826,7 @@
             <div id="testlinerSubGroup">
               <label class="block font-medium text-slate-700 mb-1">Hình Thức TESTLINER</label>
               <select id="m_contTestlinerSubtype" class="w-full px-2.5 py-1.5 rounded border border-slate-300 font-semibold bg-white">
+                <option value="">-- Chưa xác định (Trống) --</option>
                 <option value="REUSE">REUSE (Không cảnh báo DET)</option>
                 <option value="TRANSLOADING">TRANSLOADING (Có cảnh báo DET)</option>
               </select>
@@ -2119,6 +2223,149 @@
     </div>
   </div>
 
+
+  <!-- ================== MODAL CHI TIẾT: CONTAINER THIẾU PHÂN LOẠI HÀNG (III.2.1) ================== -->
+  <div id="contMissingCargoModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-3.5 bg-amber-700 text-white flex items-center justify-between">
+        <h3 class="font-bold text-sm"><i class="fas fa-exclamation-triangle mr-1.5 text-amber-200"></i>Danh Sách Container Thiếu Thông Tin Phân Loại Hàng Đóng Về</h3>
+        <button onclick="document.getElementById('contMissingCargoModal').classList.add('hidden')" class="text-amber-200 hover:text-white text-xl">&times;</button>
+      </div>
+      <div class="p-4 overflow-y-auto space-y-3 text-xs">
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-amber-900 flex flex-wrap items-center justify-between gap-2">
+          <span>Các container dưới đây chưa có <strong>Loại hàng đóng về</strong> hoặc thuộc nhóm <strong>TESTLINER</strong> nhưng chưa xác định <strong>REUSE / TRANSLOADING</strong>. Khi cập nhật đầy đủ, container sẽ tự động được loại khỏi danh sách cảnh báo này.</span>
+          <button type="button" onclick="document.getElementById('contMissingCargoModal').classList.add('hidden'); filterContBySpecialAlert('MISSING_CARGO');" class="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg">Lọc trên bảng chính</button>
+        </div>
+        <div class="overflow-x-auto border border-slate-200 rounded-lg max-h-[60vh]">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-100 text-slate-700 font-semibold sticky top-0">
+              <tr>
+                <th class="px-2.5 py-2">STT</th>
+                <th class="px-2.5 py-2">Số Container</th>
+                <th class="px-2.5 py-2">Số B/L</th>
+                <th class="px-2.5 py-2">Ngày Bốc</th>
+                <th class="px-2.5 py-2">Carrier</th>
+                <th class="px-2.5 py-2">Trạng Thái Thiếu Thông Tin</th>
+                <th class="px-2.5 py-2">Ghi Chú</th>
+                <th class="px-2.5 py-2 text-center">Xử Lý</th>
+              </tr>
+            </thead>
+            <tbody id="contMissingCargoTbody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================== MODAL CHI TIẾT: SAI LỆCH HẠN DET B/L VS CONTAINER (III.4) ================== -->
+  <div id="contDetMismatchModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-3.5 bg-rose-800 text-white flex items-center justify-between">
+        <h3 class="font-bold text-sm"><i class="fas fa-calendar-xmark mr-1.5 text-rose-200"></i>Danh Sách Đối Chiếu Sai Lệch Hạn DET (B/L Module 2 vs Container Module 3)</h3>
+        <button onclick="document.getElementById('contDetMismatchModal').classList.add('hidden')" class="text-rose-200 hover:text-white text-xl">&times;</button>
+      </div>
+      <div class="p-4 overflow-y-auto space-y-3 text-xs">
+        <div class="bg-rose-50 border border-rose-200 rounded-xl p-3 text-rose-900 flex flex-wrap items-center justify-between gap-2">
+          <span>Chỉ cảnh báo khi cả hai hạn DET đều có dữ liệu hợp lệ và khác nhau (hoặc khi một B/L có nhiều hạn DET container không thống nhất). Hệ thống không tự động ghi đè hạn DET của B/L hay container.</span>
+          <button type="button" onclick="document.getElementById('contDetMismatchModal').classList.add('hidden'); filterContBySpecialAlert('DET_MISMATCH');" class="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-lg">Lọc trên bảng Container</button>
+        </div>
+        <div class="overflow-x-auto border border-slate-200 rounded-lg max-h-[60vh]">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-100 text-slate-700 font-semibold sticky top-0">
+              <tr>
+                <th class="px-2.5 py-2">STT</th>
+                <th class="px-2.5 py-2">Số B/L</th>
+                <th class="px-2.5 py-2">Số Container</th>
+                <th class="px-2.5 py-2">Ngày Bốc</th>
+                <th class="px-2.5 py-2">Hạn DET tại B/L (Module 2)</th>
+                <th class="px-2.5 py-2">Hạn DET tại Container (Module 3)</th>
+                <th class="px-2.5 py-2">Chi Tiết Sai Lệch</th>
+                <th class="px-2.5 py-2 text-center">Kiểm Tra / Sửa</th>
+              </tr>
+            </thead>
+            <tbody id="contDetMismatchTbody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================== MODAL CHI TIẾT: B/L CÓ TỪ 2 NGÀY BỐC CONTAINER TRỞ LÊN (IV.3) ================== -->
+  <div id="sumMultiLoadDateModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-3.5 bg-amber-800 text-white flex items-center justify-between">
+        <h3 class="font-bold text-sm"><i class="fas fa-calendar-week mr-1.5 text-amber-200"></i>Danh Sách B/L Có Từ 2 Ngày Bốc Container Hợp Lệ Trở Lên</h3>
+        <button onclick="document.getElementById('sumMultiLoadDateModal').classList.add('hidden')" class="text-amber-200 hover:text-white text-xl">&times;</button>
+      </div>
+      <div class="p-4 overflow-y-auto space-y-3 text-xs">
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-amber-900 flex flex-wrap items-center justify-between gap-2">
+          <span>Đây là cảnh báo hỗ trợ kiểm tra đối chiếu đối với các B/L được bốc trong nhiều ngày khác nhau. Hệ thống giữ nguyên các dòng tổng hợp tách theo ngày bốc.</span>
+          <button type="button" onclick="document.getElementById('sumMultiLoadDateModal').classList.add('hidden'); applySumQuickAlertFilter('MULTI_LOAD_DATE');" class="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg">Chỉ hiển thị trên bảng Tổng hợp</button>
+        </div>
+        <div class="overflow-x-auto border border-slate-200 rounded-lg max-h-[60vh]">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-100 text-slate-700 font-semibold sticky top-0">
+              <tr>
+                <th class="px-2.5 py-2">STT</th>
+                <th class="px-2.5 py-2">Số B/L</th>
+                <th class="px-2.5 py-2">Carrier</th>
+                <th class="px-2.5 py-2 text-center">Số Ngày Bốc Khác Nhau</th>
+                <th class="px-2.5 py-2">Các Ngày Bốc Liên Quan</th>
+                <th class="px-2.5 py-2 text-center">Tổng Số Cont Đã Bốc</th>
+                <th class="px-2.5 py-2 text-center">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="sumMultiLoadDateTbody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================== MODAL CHI TIẾT: ĐỐI CHIẾU ATA (MODULE 5) VỚI ETA (MODULE 2) (IV.4) ================== -->
+  <div id="sumAtaEtaModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-3.5 bg-indigo-900 text-white flex items-center justify-between">
+        <h3 class="font-bold text-sm"><i class="fas fa-code-compare mr-1.5 text-indigo-300"></i>Bảng Đối Chiếu Ngày ATA (Module Tổng Hợp) &amp; Ngày ETA (Module Hàng Tồn Theo B/L)</h3>
+        <button onclick="document.getElementById('sumAtaEtaModal').classList.add('hidden')" class="text-indigo-200 hover:text-white text-xl">&times;</button>
+      </div>
+      <div class="p-4 overflow-y-auto space-y-3 text-xs">
+        <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-indigo-950 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p class="font-bold">Lưu ý nghiệp vụ: ETA là thời gian dự kiến đến, ATA là thời gian thực tế đến. Hai ngày này có thể khác nhau hợp lệ; bảng đối chiếu giúp phát hiện và kiểm tra nhanh theo yêu cầu mà không tự động ghi đè dữ liệu.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <select id="modalAtaEtaStatusFilter" onchange="renderSumAtaEtaModalTable()" class="px-2.5 py-1 rounded border border-indigo-300 bg-white font-semibold">
+              <option value="ALL">-- Tất cả dòng tổng hợp --</option>
+              <option value="ATA_ETA_MISMATCH" selected>🔄 Sai lệch ATA ≠ ETA</option>
+              <option value="MISSING_ATA">⏳ Thiếu ATA (Module 5)</option>
+              <option value="MISSING_ETA">⏳ Thiếu ETA (Module 2)</option>
+              <option value="BL_NOT_FOUND">❓ Không tìm thấy B/L tại Module 2</option>
+              <option value="MATCH">✅ Khớp ATA = ETA</option>
+            </select>
+          </div>
+        </div>
+        <div class="overflow-x-auto border border-slate-200 rounded-lg max-h-[60vh]">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-100 text-slate-700 font-semibold sticky top-0">
+              <tr>
+                <th class="px-2.5 py-2">STT</th>
+                <th class="px-2.5 py-2">Số B/L</th>
+                <th class="px-2.5 py-2">Ngày Bốc Cont</th>
+                <th class="px-2.5 py-2">Carrier</th>
+                <th class="px-2.5 py-2">ETA tại Module 2 (Hàng tồn B/L)</th>
+                <th class="px-2.5 py-2">ATA tại Module 5 (Tổng hợp)</th>
+                <th class="px-2.5 py-2">Trạng Thái Đối Chiếu</th>
+                <th class="px-2.5 py-2 text-center">Cập Nhật</th>
+              </tr>
+            </thead>
+            <tbody id="sumAtaEtaModalTbody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- JavaScript Xử Lý Toàn Bộ Nghiệp Vụ SPP Logistics Management -->
   <script>
     const nowLocal = new Date();
@@ -2356,6 +2603,7 @@
         try {
           const zip = await JSZip.loadAsync(buffer);
           if (zip.file('xl/workbook.xml')) {
+            const decodeXml = (str) => String(str || "").replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10))).replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16))).replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
             const sharedStrings = [];
             const ssFile = zip.file('xl/sharedStrings.xml');
             if (ssFile) {
@@ -2367,7 +2615,7 @@
                 for (const tm of tMatches) {
                   text += tm.replace(/^<t(?:\s+[^>]*)?>/, '').replace(/<\/t>$/, '');
                 }
-                text = text.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#10;/g, '\n').replace(/&#13;/g, '\r');
+                text = decodeXml(text);
                 sharedStrings.push(text);
               }
             }
@@ -2438,7 +2686,7 @@
               const nameM = sm.match(/name="([^"]+)"/);
               const ridM = sm.match(/r:id="([^"]+)"/);
               if (!nameM || !ridM) continue;
-              const sName = nameM[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+              const sName = decodeXml(nameM[1]);
               SheetNames.push(sName);
               let target = relMap[ridM[1]] || '';
               target = target.startsWith('/') ? target.slice(1) : 'xl/' + target.replace(/^xl\//, '');
@@ -2469,7 +2717,7 @@
                   let val = '';
                   if (cType === 'inlineStr') {
                     const isM = cm.match(/<t(?:\s+[^>]*)?>([\s\S]*?)<\/t>/);
-                    val = isM ? isM[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>') : '';
+                    val = isM ? decodeXml(isM[1]) : '';
                   } else {
                     const vM = cm.match(/<v>([\s\S]*?)<\/v>/);
                     if (vM) {
@@ -2477,7 +2725,7 @@
                       if (cType === 's') {
                         val = sharedStrings[parseInt(rawV, 10)] ?? '';
                       } else if (cType === 'str' || cType === 'e') {
-                        val = rawV.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+                        val = decodeXml(rawV);
                       } else if (cType === 'b') {
                         val = rawV === '1';
                       } else {
@@ -2679,6 +2927,8 @@
         } else {
           c.isHqPulp = !!c.isHqPulp;
         }
+        if (c.returnCargoType === undefined || c.returnCargoType === null) c.returnCargoType = '';
+        if (c.testlinerSubtype === undefined || c.testlinerSubtype === null) c.testlinerSubtype = '';
       });
     }
 
@@ -2745,11 +2995,14 @@
     }
 
     window.addEventListener('storage', (ev) => {
-      if (ev.key === STORAGE_BL_KEY || ev.key === STORAGE_CONT_KEY || ev.key === STORAGE_SETTINGS_KEY) {
+      if ([STORAGE_BL_KEY, STORAGE_CONT_KEY, STORAGE_SETTINGS_KEY, STORAGE_SUMMARY_META_KEY, STORAGE_AUDIT_LOG_KEY].includes(ev.key)) {
         loadData();
+        renderDashboard();
         renderBlTable();
         renderContTable();
         renderTrackingTable();
+        renderModule5Summary();
+        renderAuditTable();
       }
     });
 
@@ -2764,50 +3017,154 @@
       document.getElementById('pendingReturnCountBadge').innerText = pendingTransPulp;
       document.getElementById('stat-pending-trans').innerText = pendingTrans;
       document.getElementById('stat-pending-pulp').innerText = pendingPulp;
-      document.getElementById('stat-total-unreturned').innerText = contList.filter(c => !c.emptyReturnDate).length;
+      document.getElementById('stat-total-unreturned').innerText = contList.filter(c => !c.emptyReturnDate && !(c.returnCargoType === 'TESTLINER' && c.testlinerSubtype === 'REUSE')).length;
       const sumBadge = document.getElementById('sumCountBadge');
       if (sumBadge) sumBadge.innerText = buildModule5SummaryRows().length;
       const audBadge = document.getElementById('auditCountBadge');
       if (audBadge) audBadge.innerText = auditLogList.length;
     }
 
-    function updateCloudStatusIndicator(statusOverride = null) {
+    window._cloudSyncState = 'IDLE';
+    window._lastCloudErrorMsg = '';
+
+    function updateCloudStatusIndicator(statusOverride = null, errorDetail = '') {
       const badge = document.getElementById('cloudStatusBadge');
       const text = document.getElementById('cloudStatusText');
-      if (statusOverride === 'OFFLINE') {
-        text.innerText = 'Offline (Đã lưu máy)';
-        badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-medium bg-rose-950 text-rose-300 border border-rose-700';
-        return;
-      }
-      if (appSettings.cloudProvider === 'FIREBASE') {
-        text.innerText = 'Firebase Cloud';
-        badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-medium bg-amber-950 text-amber-300 border border-amber-700';
-      } else if (appSettings.cloudProvider === 'SUPABASE') {
-        text.innerText = 'Supabase Cloud';
-        badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-medium bg-emerald-950 text-emerald-300 border border-emerald-700';
-      } else {
+      if (!badge || !text) return;
+
+      if (appSettings.cloudProvider === 'LOCAL' || !appSettings.cloudUrl) {
+        window._cloudSyncState = 'LOCAL';
         text.innerText = 'Cục Bộ (Local)';
         badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-800 text-slate-300 border border-slate-700';
+        badge.title = 'Dữ liệu đang lưu cục bộ trên trình duyệt';
+        return;
       }
+
+      const pName = appSettings.cloudProvider === 'FIREBASE' ? 'Firebase' : 'Supabase';
+
+      if (statusOverride === 'SYNCING') {
+        window._cloudSyncState = 'SYNCING';
+        text.innerText = `Đang đồng bộ (${pName})...`;
+        badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-medium bg-blue-950 text-blue-300 border border-blue-600 animate-pulse';
+        badge.title = 'Đang gửi/nhận dữ liệu với Cloud...';
+        return;
+      }
+      if (statusOverride === 'ERROR') {
+        window._cloudSyncState = 'ERROR';
+        window._lastCloudErrorMsg = errorDetail || 'Lỗi kết nối Cloud';
+        text.innerText = `Đồng bộ thất bại (${pName})`;
+        badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-medium bg-rose-950 text-rose-300 border border-rose-700';
+        badge.title = window._lastCloudErrorMsg;
+        return;
+      }
+      if (statusOverride === 'OFFLINE') {
+        window._cloudSyncState = 'OFFLINE';
+        text.innerText = 'Chưa đồng bộ / Ngoại tuyến';
+        badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-medium bg-amber-950 text-amber-300 border border-amber-700';
+        badge.title = errorDetail || 'Đang ngoại tuyến hoặc chưa đồng bộ với Cloud';
+        return;
+      }
+      if (statusOverride === 'SUCCESS') {
+        window._cloudSyncState = 'SUCCESS';
+        window._lastCloudErrorMsg = '';
+        text.innerText = `Đồng bộ thành công (${pName})`;
+        badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-medium bg-emerald-950 text-emerald-300 border border-emerald-700';
+        badge.title = 'Đã đồng bộ thành công B/L, Container, Tổng hợp & Lịch sử lên Cloud';
+        return;
+      }
+
+      // Mặc định khi cấu hình Cloud nhưng chưa thực hiện xong request xác nhận
+      window._cloudSyncState = 'PENDING';
+      text.innerText = `Chưa đồng bộ (${pName})`;
+      badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-800 text-amber-300 border border-amber-700';
+      badge.title = 'Đã cấu hình Cloud, đang chờ đồng bộ';
+    }
+
+    function mergeAuditLogsSafe(localLogs, cloudLogs) {
+      const map = new Map();
+      (Array.isArray(cloudLogs) ? cloudLogs : []).forEach(item => {
+        if (item && item.id) map.set(item.id, item);
+      });
+      (Array.isArray(localLogs) ? localLogs : []).forEach(item => {
+        if (item && item.id && !map.has(item.id)) map.set(item.id, item);
+      });
+      const merged = Array.from(map.values());
+      merged.sort((a, b) => String(b.timestamp || '').localeCompare(String(a.timestamp || '')));
+      return merged.slice(0, 2000);
+    }
+
+    function mergeSummaryMetaSafe(localMeta, cloudMeta) {
+      const map = new Map();
+      const makeKey = (sm) => `${cleanBlNumberKey(sm.blNumber)}__${(sm.loadingDate || '').trim()}`;
+      (Array.isArray(localMeta) ? localMeta : []).forEach(sm => {
+        if (!sm) return;
+        map.set(makeKey(sm), sm);
+      });
+      (Array.isArray(cloudMeta) ? cloudMeta : []).forEach(sm => {
+        if (!sm) return;
+        const k = makeKey(sm);
+        const existing = map.get(k);
+        if (!existing) {
+          map.set(k, sm);
+        } else {
+          const tCloud = sm.updatedAt ? new Date(sm.updatedAt).getTime() : 0;
+          const tLocal = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+          if (tCloud >= tLocal) {
+            map.set(k, { ...existing, ...sm });
+          }
+        }
+      });
+      return Array.from(map.values());
     }
 
     async function pushToCloudSilently() {
+      if (appSettings.cloudProvider === 'LOCAL' || !appSettings.cloudUrl) {
+        updateCloudStatusIndicator();
+        return false;
+      }
+      updateCloudStatusIndicator('SYNCING');
       try {
         if (appSettings.cloudProvider === 'FIREBASE') {
-          let url = normalizeFirebaseUrl(appSettings.cloudUrl);
-          if (!url) return;
-          url = url + '/spp_data.json';
+          let baseUrl = normalizeFirebaseUrl(appSettings.cloudUrl);
+          if (!baseUrl) throw new Error('Database URL không hợp lệ');
+          let url = baseUrl + '/spp_data.json';
           if (appSettings.cloudKey) url += `?auth=${encodeURIComponent(appSettings.cloudKey.trim())}`;
+
+          // Kéo bản trên cloud trước (nếu có) để hợp nhất an toàn tránh ghi đè mất lịch sử / bản ghi từ phiên khác
+          try {
+            const getRes = await fetch(url);
+            if (getRes.ok) {
+              const remoteData = await getRes.json();
+              if (remoteData && typeof remoteData === 'object') {
+                if (Array.isArray(remoteData.auditLogList) && remoteData.auditLogList.length > 0) {
+                  auditLogList = mergeAuditLogsSafe(auditLogList, remoteData.auditLogList);
+                  safeStorage.setItem(STORAGE_AUDIT_LOG_KEY, JSON.stringify(auditLogList));
+                }
+              }
+            }
+          } catch (preFetchErr) {
+            // Bỏ qua lỗi đọc trước nếu chưa có node, tiếp tục PUT
+          }
+
+          const payload = {
+            blList,
+            contList,
+            summaryMetaList,
+            auditLogList,
+            lastUpdated: new Date().toISOString()
+          };
           const res = await fetch(url, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ blList, contList, lastUpdated: new Date().toISOString() })
+            body: JSON.stringify(payload)
           });
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          updateCloudStatusIndicator();
+          if (!res.ok) throw new Error('Firebase HTTP ' + res.status);
+          updateCloudStatusIndicator('SUCCESS');
+          return true;
         } else if (appSettings.cloudProvider === 'SUPABASE') {
           const baseUrl = appSettings.cloudUrl.trim().replace(/\/$/, '');
           const key = appSettings.cloudKey.trim();
+          if (!key) throw new Error('Thiếu Supabase API Key');
           const headers = {
             'Content-Type': 'application/json',
             'apikey': key,
@@ -2821,7 +3178,7 @@
               total_gw: b.totalGw, delivered_cont: b.deliveredCont, remaining_cont: b.remainingCont,
               delivered_gw: b.deliveredGw, remaining_gw: b.remainingGw, dem_det_allowance: b.demDetAllowance,
               return_depot: b.returnDepot, sto_date: b.stoDate || null, dem_date: b.demDate || null,
-              det_date: b.detDate || null, status: b.status
+              det_date: b.detDate || null, status: b.status || ''
             }));
             const r1 = await fetch(`${baseUrl}/rest/v1/spp_bl_inventory`, { method: 'POST', headers, body: JSON.stringify(blPayload) });
             if (!r1.ok) throw new Error('Supabase BL HTTP ' + r1.status);
@@ -2832,56 +3189,137 @@
               container_type: c.containerType || '40HC', bl_number: c.blNumber, carrier: c.carrier,
               eta: c.eta || null, truck_plate: c.truckPlate, trailer_plate: c.trailerPlate,
               driver_name: c.driverName, sto_date: c.stoDate || null, dem_date: c.demDate || null,
-              det_date: c.detDate || null, return_cargo_type: c.returnCargoType,
-              testliner_subtype: c.testlinerSubtype, is_lying_paper: !!c.isLyingPaper,
+              det_date: c.detDate || null, return_cargo_type: c.returnCargoType || '',
+              testliner_subtype: c.testlinerSubtype || '', is_lying_paper: !!c.isLyingPaper,
               is_padded: !!c.isPadded, empty_return_date: c.emptyReturnDate || null,
               return_depot: c.returnDepot, container_damaged: c.containerDamaged || '', remark: c.remark || ''
             }));
             const r2 = await fetch(`${baseUrl}/rest/v1/spp_containers`, { method: 'POST', headers, body: JSON.stringify(contPayload) });
             if (!r2.ok) throw new Error('Supabase Cont HTTP ' + r2.status);
           }
-          updateCloudStatusIndicator();
+          if (summaryMetaList.length > 0) {
+            const sumPayload = summaryMetaList.map(sm => ({
+              id: sm.id || (`SM_${cleanBlNumberKey(sm.blNumber)}_${sm.loadingDate}`),
+              bl_number: cleanBlNumberKey(sm.blNumber),
+              raw_bl_display: sm.rawBlDisplay || sm.blNumber || '',
+              loading_date: sm.loadingDate || '',
+              carrier: sm.carrier || '',
+              ata: sm.ata || null,
+              cont_type: sm.contType || '40F',
+              imported_total_cont: Number(sm.importedTotalCont) || 0,
+              imported_reuse: Number(sm.importedReuse) || 0,
+              imported_transload: Number(sm.importedTransload) || 0,
+              imported_pulp: Number(sm.importedPulp) || 0,
+              imported_empty: Number(sm.importedEmpty) || 0,
+              return_depot: sm.returnDepot || '',
+              do_flag: !!sm.doFlag,
+              cc_flag: !!sm.ccFlag,
+              mt_flag: !!sm.mtFlag,
+              thc_flag: !!sm.thcFlag,
+              drop_off: sm.dropOff !== '' && sm.dropOff !== null && sm.dropOff !== undefined ? Number(sm.dropOff) : null,
+              hq_pulp: Number(sm.hqPulp) || 0,
+              tsa_trans: sm.tsaTrans !== '' && sm.tsaTrans !== null && sm.tsaTrans !== undefined ? Number(sm.tsaTrans) : null,
+              tsa_pulp: sm.tsaPulp !== '' && sm.tsaPulp !== null && sm.tsaPulp !== undefined ? Number(sm.tsaPulp) : null,
+              tsa_empty: sm.tsaEmpty !== '' && sm.tsaEmpty !== null && sm.tsaEmpty !== undefined ? Number(sm.tsaEmpty) : null,
+              is_chemical: !!sm.isChemical,
+              debit_note_no: sm.debitNoteNo || '',
+              debit_note_date: sm.debitNoteDate || null,
+              exchange_rate: sm.exchangeRate !== '' && sm.exchangeRate !== null && sm.exchangeRate !== undefined ? Number(sm.exchangeRate) : null,
+              note: sm.note || '',
+              updated_at: sm.updatedAt || new Date().toISOString()
+            }));
+            const r3 = await fetch(`${baseUrl}/rest/v1/spp_summary_meta`, { method: 'POST', headers, body: JSON.stringify(sumPayload) });
+            if (!r3.ok) throw new Error('Supabase Summary HTTP ' + r3.status);
+          }
+          if (auditLogList.length > 0) {
+            const auditPayload = auditLogList.map(a => ({
+              id: a.id,
+              timestamp: a.timestamp,
+              iso_date: a.isoDate || (a.timestamp || '').slice(0, 10),
+              module: a.module || '',
+              entity_type: a.entityType || '',
+              record_code: a.recordCode || '',
+              action: a.action || '',
+              changed_fields: a.changedFields || '',
+              old_val: a.oldVal || '',
+              new_val: a.newVal || '',
+              old_json: a.oldJson ? JSON.stringify(a.oldJson) : null,
+              new_json: a.newJson ? JSON.stringify(a.newJson) : null,
+              source: a.source || '',
+              actor: a.actor || ''
+            }));
+            const r4 = await fetch(`${baseUrl}/rest/v1/spp_audit_logs`, { method: 'POST', headers, body: JSON.stringify(auditPayload) });
+            if (!r4.ok) throw new Error('Supabase Audit HTTP ' + r4.status);
+          }
+          updateCloudStatusIndicator('SUCCESS');
+          return true;
         }
       } catch (err) {
         console.warn('Cảnh báo đồng bộ Cloud (dữ liệu vẫn được bảo toàn ở LocalStorage):', err);
-        updateCloudStatusIndicator('OFFLINE');
+        updateCloudStatusIndicator('ERROR', err.message);
+        return false;
       }
+      return false;
     }
 
     async function pullFromCloudSilently() {
+      if (appSettings.cloudProvider === 'LOCAL' || !appSettings.cloudUrl) {
+        updateCloudStatusIndicator();
+        return false;
+      }
+      updateCloudStatusIndicator('SYNCING');
       try {
         if (appSettings.cloudProvider === 'FIREBASE') {
           let url = normalizeFirebaseUrl(appSettings.cloudUrl);
-          if (!url) return;
+          if (!url) throw new Error('Database URL không hợp lệ');
           url = url + '/spp_data.json';
           if (appSettings.cloudKey) url += `?auth=${encodeURIComponent(appSettings.cloudKey.trim())}`;
           const res = await fetch(url);
-          if (!res.ok) throw new Error('HTTP ' + res.status);
+          if (!res.ok) throw new Error('Firebase HTTP ' + res.status);
           const data = await res.json();
-          if (data && (Array.isArray(data.blList) || Array.isArray(data.contList))) {
+          if (data && typeof data === 'object') {
             const cloudBl = Array.isArray(data.blList) ? data.blList : [];
             const cloudCont = Array.isArray(data.contList) ? data.contList : [];
-            if (cloudBl.length > 0 || cloudCont.length > 0) {
-              blList = cloudBl;
-              contList = cloudCont;
+            const cloudSum = Array.isArray(data.summaryMetaList) ? data.summaryMetaList : [];
+            const cloudAudit = Array.isArray(data.auditLogList) ? data.auditLogList : [];
+
+            const hasCloudData = cloudBl.length > 0 || cloudCont.length > 0 || cloudSum.length > 0 || cloudAudit.length > 0;
+            const hasLocalData = blList.length > 0 || contList.length > 0 || summaryMetaList.length > 0 || auditLogList.length > 0;
+
+            if (hasCloudData) {
+              if (cloudBl.length > 0 || blList.length === 0) blList = cloudBl;
+              if (cloudCont.length > 0 || contList.length === 0) contList = cloudCont;
+              if (cloudSum.length > 0) summaryMetaList = mergeSummaryMetaSafe(summaryMetaList, cloudSum);
+              if (cloudAudit.length > 0) auditLogList = mergeAuditLogsSafe(auditLogList, cloudAudit);
+
+              ensureBackwardCompatibleData();
               safeStorage.setItem(STORAGE_BL_KEY, JSON.stringify(blList));
               safeStorage.setItem(STORAGE_CONT_KEY, JSON.stringify(contList));
-            } else if (blList.length > 0 || contList.length > 0) {
-              pushToCloudSilently();
+              safeStorage.setItem(STORAGE_SUMMARY_META_KEY, JSON.stringify(summaryMetaList));
+              safeStorage.setItem(STORAGE_AUDIT_LOG_KEY, JSON.stringify(auditLogList));
+              updateCloudStatusIndicator('SUCCESS');
+            } else if (hasLocalData) {
+              await pushToCloudSilently();
+            } else {
+              updateCloudStatusIndicator('SUCCESS');
             }
-          } else if (data === null && (blList.length > 0 || contList.length > 0)) {
-            pushToCloudSilently();
+          } else if (data === null && (blList.length > 0 || contList.length > 0 || summaryMetaList.length > 0 || auditLogList.length > 0)) {
+            await pushToCloudSilently();
+          } else {
+            updateCloudStatusIndicator('SUCCESS');
           }
-          updateCloudStatusIndicator();
         } else if (appSettings.cloudProvider === 'SUPABASE') {
           const baseUrl = appSettings.cloudUrl.trim().replace(/\/$/, '');
           const key = appSettings.cloudKey.trim();
+          if (!key) throw new Error('Thiếu Supabase API Key');
           const headers = { 'apikey': key, 'Authorization': `Bearer ${key}` };
-          const [r1, r2] = await Promise.all([
+          const [r1, r2, r3, r4] = await Promise.all([
             fetch(`${baseUrl}/rest/v1/spp_bl_inventory?select=*`, { headers }),
-            fetch(`${baseUrl}/rest/v1/spp_containers?select=*`, { headers })
+            fetch(`${baseUrl}/rest/v1/spp_containers?select=*`, { headers }),
+            fetch(`${baseUrl}/rest/v1/spp_summary_meta?select=*`, { headers }),
+            fetch(`${baseUrl}/rest/v1/spp_audit_logs?select=*`, { headers })
           ]);
-          if (!r1.ok || !r2.ok) throw new Error('Supabase fetch error');
+          if (!r1.ok || !r2.ok) throw new Error('Supabase fetch error HTTP ' + r1.status + '/' + r2.status);
           const blData = await r1.json();
           const contData = await r2.json();
           if (Array.isArray(blData) && blData.length > 0) {
@@ -2892,7 +3330,7 @@
               deliveredCont: Number(b.delivered_cont) || 0, remainingCont: Number(b.remaining_cont) || 0,
               deliveredGw: Number(b.delivered_gw) || 0, remainingGw: Number(b.remaining_gw) || 0,
               demDetAllowance: b.dem_det_allowance || '', returnDepot: b.return_depot || '',
-              stoDate: b.sto_date || '', demDate: b.dem_date || '', detDate: b.det_date || '', status: b.status || 'D/O'
+              stoDate: b.sto_date || '', demDate: b.dem_date || '', detDate: b.det_date || '', status: b.status || ''
             }));
           }
           if (Array.isArray(contData) && contData.length > 0) {
@@ -2901,23 +3339,94 @@
               containerType: c.container_type || '40HC', blNumber: c.bl_number || '', carrier: c.carrier || '',
               eta: c.eta || '', truckPlate: c.truck_plate || '', trailerPlate: c.trailer_plate || '',
               driverName: c.driver_name || '', stoDate: c.sto_date || '', demDate: c.dem_date || '',
-              detDate: c.det_date || '', returnCargoType: c.return_cargo_type || 'EMPTY',
-              testlinerSubtype: c.testliner_subtype || 'REUSE', isLyingPaper: !!c.is_lying_paper,
+              detDate: c.det_date || '', returnCargoType: c.return_cargo_type !== undefined && c.return_cargo_type !== null ? c.return_cargo_type : '',
+              testlinerSubtype: c.testliner_subtype !== undefined && c.testliner_subtype !== null ? c.testliner_subtype : '',
+              isLyingPaper: !!c.is_lying_paper,
               isPadded: !!c.is_padded, emptyReturnDate: c.empty_return_date || '',
               returnDepot: c.return_depot || '', containerDamaged: c.container_damaged || '', remark: c.remark || ''
             }));
           }
+          if (r3 && r3.ok) {
+            const sumData = await r3.json();
+            if (Array.isArray(sumData) && sumData.length > 0) {
+              const mappedSum = sumData.map(s => ({
+                id: s.id,
+                blNumber: s.bl_number || '',
+                rawBlDisplay: s.raw_bl_display || s.bl_number || '',
+                loadingDate: s.loading_date || '',
+                carrier: s.carrier || '',
+                ata: s.ata || '',
+                contType: s.cont_type || '40F',
+                importedTotalCont: Number(s.imported_total_cont) || 0,
+                importedReuse: Number(s.imported_reuse) || 0,
+                importedTransload: Number(s.imported_transload) || 0,
+                importedPulp: Number(s.imported_pulp) || 0,
+                importedEmpty: Number(s.imported_empty) || 0,
+                returnDepot: s.return_depot || '',
+                doFlag: !!s.do_flag,
+                ccFlag: !!s.cc_flag,
+                mtFlag: !!s.mt_flag,
+                thcFlag: !!s.thc_flag,
+                dropOff: s.drop_off !== null && s.drop_off !== undefined ? Number(s.drop_off) : '',
+                hqPulp: Number(s.hq_pulp) || 0,
+                tsaTrans: s.tsa_trans !== null && s.tsa_trans !== undefined ? Number(s.tsa_trans) : '',
+                tsaPulp: s.tsa_pulp !== null && s.tsa_pulp !== undefined ? Number(s.tsa_pulp) : '',
+                tsaEmpty: s.tsa_empty !== null && s.tsa_empty !== undefined ? Number(s.tsa_empty) : '',
+                isChemical: !!s.is_chemical,
+                debitNoteNo: s.debit_note_no || '',
+                debitNoteDate: s.debit_note_date || '',
+                exchangeRate: s.exchange_rate !== null && s.exchange_rate !== undefined ? Number(s.exchange_rate) : '',
+                note: s.note || '',
+                updatedAt: s.updated_at || ''
+              }));
+              summaryMetaList = mergeSummaryMetaSafe(summaryMetaList, mappedSum);
+            }
+          }
+          if (r4 && r4.ok) {
+            const audData = await r4.json();
+            if (Array.isArray(audData) && audData.length > 0) {
+              const mappedAud = audData.map(a => ({
+                id: a.id,
+                timestamp: a.timestamp || '',
+                isoDate: a.iso_date || (a.timestamp || '').slice(0, 10),
+                module: a.module || '',
+                entityType: a.entity_type || '',
+                recordCode: a.record_code || '',
+                action: a.action || '',
+                changedFields: a.changed_fields || '',
+                oldVal: a.old_val || '',
+                newVal: a.new_val || '',
+                oldJson: a.old_json ? (typeof a.old_json === 'string' ? JSON.parse(a.old_json) : a.old_json) : null,
+                newJson: a.new_json ? (typeof a.new_json === 'string' ? JSON.parse(a.new_json) : a.new_json) : null,
+                source: a.source || '',
+                actor: a.actor || ''
+              }));
+              auditLogList = mergeAuditLogsSafe(auditLogList, mappedAud);
+            }
+          }
+          ensureBackwardCompatibleData();
           safeStorage.setItem(STORAGE_BL_KEY, JSON.stringify(blList));
           safeStorage.setItem(STORAGE_CONT_KEY, JSON.stringify(contList));
-          updateCloudStatusIndicator();
+          safeStorage.setItem(STORAGE_SUMMARY_META_KEY, JSON.stringify(summaryMetaList));
+          safeStorage.setItem(STORAGE_AUDIT_LOG_KEY, JSON.stringify(auditLogList));
+          updateCloudStatusIndicator('SUCCESS');
         }
+        return true;
       } catch (err) {
         console.warn('Không thể kết nối Cloud, sử dụng dữ liệu cục bộ:', err);
-        updateCloudStatusIndicator('OFFLINE');
+        updateCloudStatusIndicator('ERROR', err.message);
+        return false;
       } finally {
+        refreshBlMultiDropdownOptions();
+        refreshSumMultiDropdownOptions();
         updateCounts();
         updateDepotDropdown();
         renderDashboard();
+        renderBlTable();
+        renderContTable();
+        renderTrackingTable();
+        renderModule5Summary();
+        renderAuditTable();
       }
     }
 
@@ -2959,12 +3468,21 @@
     }
 
     async function syncWithCloudNow() {
-      await pushToCloudSilently();
-      await pullFromCloudSilently();
-      renderBlTable();
-      renderContTable();
-      renderTrackingTable();
-      alert('✅ Đã thực hiện đồng bộ dữ liệu!');
+      if (appSettings.cloudProvider === 'LOCAL' || !appSettings.cloudUrl) {
+        alert('ℹ️ Ứng dụng đang ở chế độ Lưu cục bộ (Local). Vui lòng chọn nền tảng Cloud và nhập URL trước khi đồng bộ!');
+        return;
+      }
+      const okPush = await pushToCloudSilently();
+      if (!okPush) {
+        alert('❌ Đồng bộ lên Cloud thất bại: ' + (window._lastCloudErrorMsg || 'Không thể kết nối máy chủ Cloud') + '\nDữ liệu cục bộ vẫn được bảo toàn an toàn.');
+        return;
+      }
+      const okPull = await pullFromCloudSilently();
+      if (!okPull) {
+        alert('❌ Tải dữ liệu xác nhận từ Cloud thất bại: ' + (window._lastCloudErrorMsg || 'Lỗi kết nối'));
+        return;
+      }
+      alert('✅ Đã đồng bộ dữ liệu hai chiều thành công (B/L, Container, Tổng hợp & Lịch sử sửa đổi)!');
     }
 
     function getBlRemainingContAndGw(b) {
@@ -3468,7 +3986,7 @@
           <td data-col="demDate" class="px-2 py-1.5 font-mono text-slate-600 whitespace-nowrap">${b.demDate || '-'}</td>
           <td data-col="detDate" class="px-2 py-1.5 font-mono text-slate-600 whitespace-nowrap">${b.detDate || '-'}</td>
           <td data-col="returnDepot" class="px-2 py-1.5 text-slate-600 font-medium">${b.returnDepot || '-'}</td>
-          <td data-col="status" class="px-2 py-1.5"><span class="px-1.5 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700">${b.status || 'D/O'}</span></td>
+          <td data-col="status" class="px-2 py-1.5">${b.status ? `<span class="px-1.5 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700">${b.status}</span>` : ''}</td>
           <td data-col="notes" class="px-2 py-1.5 text-slate-600 max-w-[180px]" title="Gốc: ${rawNote} | TV: ${viNote}">${noteHtml}</td>
           <td data-col="actions" class="px-2 py-1.5 text-center whitespace-nowrap">
             <button onclick="editBl('${b.id}')" title="Sửa B/L &amp; Ghi chú" class="text-blue-600 hover:text-blue-800 mr-2"><i class="fas fa-edit"></i></button>
@@ -3664,7 +4182,7 @@
           tempBlImportErrors.push(`Dòng ${r + 1} (B/L ${rawBl}): Cột Hạn DET "${row[colDet]}" không hợp lệ -> Đã để trống`);
         }
 
-        let statusStr = colStatus !== -1 && row[colStatus] ? String(row[colStatus]).trim().toUpperCase() : 'D/O';
+        let statusStr = (colStatus !== -1 && row[colStatus] !== undefined && row[colStatus] !== null && String(row[colStatus]).trim() !== '') ? String(row[colStatus]).trim().toUpperCase() : '';
         if (statusStr === 'D/0') statusStr = 'D/O';
 
         const isDupInSys = blList.some(b => b.blNumber.toUpperCase() === rawBl);
@@ -3786,7 +4304,7 @@
               stoDate: item.stoDate || old.stoDate,
               demDate: item.demDate || old.demDate,
               detDate: item.detDate || old.detDate,
-              status: item.status || old.status,
+              status: item.status !== '' ? item.status : (old.status || ''),
               notes: item.notes || old.notes
             };
             updated++;
@@ -3876,21 +4394,47 @@
             }
 
             const header = rawRows[headerIdx].map(c => String(c || '').trim());
-            const colPickup = header.findIndex(h => /pick up|ngày bốc/i.test(h));
-            const colTruck = header.findIndex(h => /truck no|số xe/i.test(h));
-            const colTrailer = header.findIndex(h => /trailer no|mooc/i.test(h));
-            const colDriver = header.findIndex(h => /driver name|tên lái xe|tài xế/i.test(h));
-            const colCont = header.findIndex(h => /container no|số cont/i.test(h));
-            const colBL = header.findIndex(h => /import b\/l no|b\/l no|số b\/l/i.test(h));
-            const colCarrier = header.findIndex(h => /carrier|hãng tàu/i.test(h));
-            const colLoading = header.findIndex(h => /^loading$/i.test(h));
-            const colPad = header.findIndex(h => /^pad$/i.test(h));
-            const colTypeStuffing = header.findIndex(h => /transloading|reuse/i.test(h));
-            const colCommodity = header.findIndex(h => /^com\.|commodity|hàng đóng|loại đóng về/i.test(h));
-            const colRemark = header.findIndex(h => /remark|ghi chú/i.test(h));
-            const colPOD = header.findIndex(h => /^pod$|depot|bãi/i.test(h));
-            const colDamaged = header.findIndex(h => /damaged|hư hỏng/i.test(h));
-            const colReturnDate = header.findIndex(h => /ngày trả rỗng/i.test(h));
+            const normHdr = header.map(h => h.replace(/\s+/g, ' ').trim());
+
+            const colPickup = normHdr.findIndex(h => /pick\s*up|ngày\s*bốc|ngay\s*boc/i.test(h));
+            const colTruck = normHdr.findIndex(h => /truck\s*no|số\s*xe|so\s*xe/i.test(h));
+            const colTrailer = normHdr.findIndex(h => /trailer\s*no|mooc/i.test(h));
+            const colDriver = normHdr.findIndex(h => /driver\s*name|tên\s*lái\s*xe|tài\s*xế|tai\s*xe/i.test(h));
+            const colCont = normHdr.findIndex(h => /container\s*no|số\s*cont|so\s*cont/i.test(h));
+            const colBL = normHdr.findIndex(h => /import\s*b\/l\s*no|b\/l\s*no|số\s*b\/l|so\s*b\/l/i.test(h));
+            const colCarrier = normHdr.findIndex(h => /^carrier$|hãng\s*tàu|hang\s*tau/i.test(h));
+            const colLoading = normHdr.findIndex(h => /^loading$/i.test(h));
+            const colPad = normHdr.findIndex(h => /^pad$|lót\s*su|lot\s*su/i.test(h));
+            const colTypeStuffing = normHdr.findIndex(h => /transloading|reuse/i.test(h));
+            const colCommodity = normHdr.findIndex(h => /^com\.?$|commodity|hàng\s*đóng|loại\s*hàng|loại\s*đóng\s*về|loai\s*hang/i.test(h));
+            const colRemark = normHdr.findIndex(h => /remark|ghi\s*chú|ghi\s*chu/i.test(h));
+            const colPOD = normHdr.findIndex(h => /^pod$|cảng\s*đích/i.test(h));
+            const colDepotDirect = normHdr.findIndex(h => /^depot$|bãi\s*trả\s*rỗng|bai\s*tra\s*rong/i.test(h));
+            const colDamaged = normHdr.findIndex(h => /damaged|hư\s*hỏng|hu\s*hong/i.test(h));
+            const colReturnDate = normHdr.findIndex(h => /ngày\s*trả\s*rỗng|empty\s*return\s*date/i.test(h));
+            const colDetDirect = normHdr.findIndex(h => /^det$|hạn\s*det|han\s*det|det\s*date/i.test(h));
+
+            // III.3: Kiểm tra riêng sự tồn tại của 3 cột mới trên từng sheet: Loại cont, Chemical/Equip, HQ pulp
+            const colContType = normHdr.findIndex(h => /^(loại\s*cont|loai\s*cont|container\s*type|cont\s*type|type|size)$/i.test(h));
+            const colChem = normHdr.findIndex(h => /^(chemical\s*\/?\s*equip(ment)?|chemical|chem\s*\/?\s*equip)$/i.test(h));
+            const colHqPulp = normHdr.findIndex(h => /^(hq\s*pulp|hải\s*quan\s*\(?pulp\)?|hai\s*quan\s*\(?pulp\)?)$/i.test(h));
+
+            const parseCheckboxCell = (rawVal) => {
+              if (rawVal === undefined || rawVal === null || String(rawVal).trim() === '') {
+                return { state: 'BLANK', value: null };
+              }
+              if (typeof rawVal === 'boolean') {
+                return { state: 'VALID', value: rawVal };
+              }
+              const s = String(rawVal).trim().toUpperCase();
+              if (['Y', 'YES', '1', 'TRUE', 'X', '✔', '✓', 'CÓ', 'CO', 'CHECKED'].includes(s)) {
+                return { state: 'VALID', value: true };
+              }
+              if (['N', 'NO', '0', 'FALSE', 'KHÔNG', 'KHONG', 'UNCHECKED', '-'].includes(s)) {
+                return { state: 'VALID', value: false };
+              }
+              return { state: 'UNKNOWN', value: null, raw: String(rawVal).trim() };
+            };
 
             const maxRowMain = summaryHeaderRow !== -1 ? summaryHeaderRow : rawRows.length;
 
@@ -3911,26 +4455,42 @@
 
               const rawBlNo = colBL !== -1 ? String(row[colBL] || '').trim().toUpperCase() : '';
               const cleanBlNo = rawBlNo.replace(/\s*\(.*?\)\s*/g, '').trim();
-              const pickUpDate = colPickup !== -1 ? normalizeDate(row[colPickup]) : todayIso;
+              const pickUpDate = colPickup !== -1 ? normalizeDate(row[colPickup]) : '';
 
-              const comVal = colCommodity !== -1 ? String(row[colCommodity] || '').trim().toUpperCase() : '';
-              const stuffVal = colTypeStuffing !== -1 ? String(row[colTypeStuffing] || '').trim().toUpperCase() : '';
-              const loadingVal = colLoading !== -1 ? String(row[colLoading] ?? '').trim() : '1';
+              const comVal = (colCommodity !== -1 && row[colCommodity] !== undefined && row[colCommodity] !== null) ? String(row[colCommodity]).trim().toUpperCase() : '';
+              const stuffVal = (colTypeStuffing !== -1 && row[colTypeStuffing] !== undefined && row[colTypeStuffing] !== null) ? String(row[colTypeStuffing]).trim().toUpperCase() : '';
+              const loadingVal = (colLoading !== -1 && row[colLoading] !== undefined && row[colLoading] !== null) ? String(row[colLoading]).trim() : '';
               const rawRemark = colRemark !== -1 ? String(row[colRemark] || '').trim() : '';
               const remarkLower = rawRemark.toLowerCase();
 
-              let retType = 'EMPTY';
+              // III.2: Không tự suy diễn loại hàng hoặc hình thức REUSE / TRANSLOADING khi thiếu dữ liệu
+              let retType = '';
               let testlinerSub = '';
 
-              if (loadingVal === '0' || comVal.includes('EMPTY') || stuffVal.includes('EMPTY')) {
+              const hasExplicitEmpty = (loadingVal === '0') || comVal === 'EMPTY' || comVal.includes('EMPTY') || stuffVal === 'EMPTY' || stuffVal.includes('EMPTY');
+              const hasExplicitPulp = comVal.includes('PULP') || stuffVal.includes('PULP');
+              const hasExplicitTestliner = comVal.includes('TESTLINER') || comVal.includes('TESLINER') || stuffVal.includes('REUSE') || stuffVal.includes('TRANSLOADING') || comVal.includes('REUSE') || comVal.includes('TRANSLOADING');
+
+              if (hasExplicitEmpty) {
                 retType = 'EMPTY';
                 testlinerSub = '';
-              } else if (comVal.includes('PULP')) {
+              } else if (hasExplicitPulp) {
                 retType = 'PULP';
                 testlinerSub = '';
-              } else if (comVal.includes('TESTLINER') || stuffVal.includes('REUSE') || stuffVal.includes('TRANSLOADING')) {
+              } else if (hasExplicitTestliner) {
                 retType = 'TESTLINER';
-                testlinerSub = stuffVal.includes('TRANSLOADING') ? 'TRANSLOADING' : 'REUSE';
+                if (stuffVal.includes('TRANSLOADING') || comVal.includes('TRANSLOADING')) {
+                  testlinerSub = 'TRANSLOADING';
+                } else if (stuffVal.includes('REUSE') || comVal.includes('REUSE')) {
+                  testlinerSub = 'REUSE';
+                } else {
+                  // Chưa có thông tin xác định REUSE hay TRANSLOADING -> để trống
+                  testlinerSub = '';
+                }
+              } else {
+                // Không đủ căn cứ xác định loại hàng đóng về -> để trống
+                retType = '';
+                testlinerSub = '';
               }
 
               const padVal = colPad !== -1 ? parseFloat(row[colPad]) : 0;
@@ -3948,10 +4508,13 @@
               if (carrier === 'H-L') carrier = 'HPL';
 
               const podVal = colPOD !== -1 && row[colPOD] ? String(row[colPOD]).trim().toUpperCase() : '';
+              const directDepotVal = colDepotDirect !== -1 && row[colDepotDirect] ? String(row[colDepotDirect]).trim().toUpperCase() : '';
               const foreignPods = new Set(['NANSHA', 'SHEKOU', 'NINGBO', 'XIAMEN', 'DONGGUAN', 'SHANGHAI', 'QINGDAO']);
 
               let returnDepot = '';
-              if (metaInfo && metaInfo.emptyReturnPlace) {
+              if (directDepotVal) {
+                returnDepot = directDepotVal;
+              } else if (metaInfo && metaInfo.emptyReturnPlace) {
                 returnDepot = metaInfo.emptyReturnPlace;
               } else if (blInfo && blInfo.returnDepot) {
                 returnDepot = blInfo.returnDepot;
@@ -3962,25 +4525,57 @@
               let etaDate = (blInfo && blInfo.eta) ? blInfo.eta : (metaInfo && metaInfo.eta ? metaInfo.eta : '');
 
               let detDate = '';
-              if (metaInfo && metaInfo.detDate) {
-                detDate = metaInfo.detDate;
-              } else if (blInfo) {
-                const { demDays, detDays, count } = parseDemDetAllowance(blInfo.demDetAllowance);
-                if (count >= 2 && detDays !== null && pickUpDate) {
-                  detDate = addDaysToDate(pickUpDate, detDays);
-                } else if (count === 1 && demDays !== null) {
-                  detDate = blInfo.demDate || addDaysToDate(blInfo.eta, demDays);
-                } else {
-                  detDate = blInfo.detDate || '';
-                }
-              } else if (metaInfo && metaInfo.demDet) {
-                const { demDays, detDays, count } = parseDemDetAllowance(metaInfo.demDet);
-                if (count >= 2 && detDays !== null && pickUpDate) {
-                  detDate = addDaysToDate(pickUpDate, detDays);
-                } else if (count === 1 && demDays !== null && etaDate) {
-                  detDate = addDaysToDate(etaDate, demDays);
+              if (colDetDirect !== -1 && row[colDetDirect]) {
+                detDate = normalizeDate(row[colDetDirect]);
+              }
+              if (!detDate) {
+                if (metaInfo && metaInfo.detDate) {
+                  detDate = metaInfo.detDate;
+                } else if (blInfo) {
+                  const { demDays, detDays, count } = parseDemDetAllowance(blInfo.demDetAllowance);
+                  if (count >= 2 && detDays !== null && pickUpDate) {
+                    detDate = addDaysToDate(pickUpDate, detDays);
+                  } else if (count === 1 && demDays !== null) {
+                    detDate = blInfo.demDate || addDaysToDate(blInfo.eta, demDays);
+                  } else {
+                    detDate = blInfo.detDate || '';
+                  }
+                } else if (metaInfo && metaInfo.demDet) {
+                  const { demDays, detDays, count } = parseDemDetAllowance(metaInfo.demDet);
+                  if (count >= 2 && detDays !== null && pickUpDate) {
+                    detDate = addDaysToDate(pickUpDate, detDays);
+                  } else if (count === 1 && demDays !== null && etaDate) {
+                    detDate = addDaysToDate(etaDate, demDays);
+                  }
                 }
               }
+
+              // III.3: Đọc các cột Loại cont, Chemical/Equip, HQ pulp theo từng sheet
+              let hasContTypeCol = colContType !== -1;
+              let parsedContType = '';
+              if (hasContTypeCol && row[colContType] !== undefined && row[colContType] !== null) {
+                parsedContType = String(row[colContType]).trim().toUpperCase();
+              }
+
+              let hasChemCol = colChem !== -1;
+              let chemParse = hasChemCol ? parseCheckboxCell(row[colChem]) : { state: 'NO_COL', value: null };
+              if (chemParse.state === 'UNKNOWN') {
+                tempDailyImportErrors.push(`Sheet ${sheetName} Dòng ${r + 1} (Cont ${contNo}): Giá trị cột Chemical/Equip không xác định ("${chemParse.raw}") -> Bỏ qua không tự chọn`);
+              }
+
+              let hasHqPulpCol = colHqPulp !== -1;
+              let hqPulpParse = hasHqPulpCol ? parseCheckboxCell(row[colHqPulp]) : { state: 'NO_COL', value: null };
+              if (hqPulpParse.state === 'UNKNOWN') {
+                tempDailyImportErrors.push(`Sheet ${sheetName} Dòng ${r + 1} (Cont ${contNo}): Giá trị cột HQ pulp không xác định ("${hqPulpParse.raw}") -> Bỏ qua không tự chọn`);
+              }
+
+              const defaultIsChem = hasChemCol
+                ? (chemParse.state === 'VALID' ? chemParse.value : false)
+                : (remarkLower.includes('chemical') || comVal.includes('CHEMICAL') || comVal.includes('EQUIP'));
+
+              const defaultIsHqPulp = hasHqPulpCol
+                ? (hqPulpParse.state === 'VALID' ? hqPulpParse.value : false)
+                : (retType === 'PULP');
 
               const finalRemark = buildStandardRemark(rawRemark, isPadded, isLying);
               const damagedStr = colDamaged !== -1 ? String(row[colDamaged] || '').trim() : '';
@@ -3989,9 +4584,11 @@
               const itemObj = {
                 sheetName: sheetName,
                 id: 'CONT_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-                loadingDate: pickUpDate || todayIso,
+                loadingDate: pickUpDate,
                 containerNumber: contNo,
-                containerType: '40HC',
+                containerType: parsedContType || '40HC',
+                _hasContTypeCol: hasContTypeCol,
+                _parsedContType: parsedContType,
                 blNumber: cleanBlNo || rawBlNo,
                 carrier: carrier,
                 eta: etaDate,
@@ -4009,8 +4606,14 @@
                 emptyReturnDate: emptyRetDate,
                 returnDepot: returnDepot,
                 pod: podVal,
-                isChemical: remarkLower.includes('chemical') || comVal.includes('CHEMICAL') || comVal.includes('EQUIP'),
-                isHqPulp: retType === 'PULP',
+                isChemical: defaultIsChem,
+                _hasChemCol: hasChemCol,
+                _chemState: chemParse.state,
+                _chemVal: chemParse.value,
+                isHqPulp: defaultIsHqPulp,
+                _hasHqPulpCol: hasHqPulpCol,
+                _hqPulpState: hqPulpParse.state,
+                _hqPulpVal: hqPulpParse.value,
                 containerDamaged: damagedStr,
                 remark: finalRemark
               };
@@ -4019,10 +4622,29 @@
               if (importedByContBl.has(dedupKey)) {
                 const prevIdx = importedByContBl.get(dedupKey);
                 const prev = tempDailyImportList[prevIdx];
+                const mergedCargo = itemObj.returnCargoType || prev.returnCargoType;
+                const mergedSub = itemObj.testlinerSubtype || prev.testlinerSubtype;
+                const mergedContType = itemObj._parsedContType || prev._parsedContType || prev.containerType || '40HC';
+                const mergedChem = (itemObj._hasChemCol && itemObj._chemState === 'VALID') ? itemObj._chemVal : prev.isChemical;
+                const mergedHqPulp = (itemObj._hasHqPulpCol && itemObj._hqPulpState === 'VALID') ? itemObj._hqPulpVal : prev.isHqPulp;
                 tempDailyImportList[prevIdx] = {
                   ...prev,
                   ...itemObj,
                   id: prev.id,
+                  loadingDate: itemObj.loadingDate || prev.loadingDate,
+                  containerType: mergedContType,
+                  _hasContTypeCol: prev._hasContTypeCol || itemObj._hasContTypeCol,
+                  _parsedContType: itemObj._parsedContType || prev._parsedContType,
+                  returnCargoType: mergedCargo,
+                  testlinerSubtype: mergedSub,
+                  isChemical: mergedChem,
+                  _hasChemCol: prev._hasChemCol || itemObj._hasChemCol,
+                  _chemState: (itemObj._hasChemCol && itemObj._chemState === 'VALID') ? 'VALID' : prev._chemState,
+                  _chemVal: (itemObj._hasChemCol && itemObj._chemState === 'VALID') ? itemObj._chemVal : prev._chemVal,
+                  isHqPulp: mergedHqPulp,
+                  _hasHqPulpCol: prev._hasHqPulpCol || itemObj._hasHqPulpCol,
+                  _hqPulpState: (itemObj._hasHqPulpCol && itemObj._hqPulpState === 'VALID') ? 'VALID' : prev._hqPulpState,
+                  _hqPulpVal: (itemObj._hasHqPulpCol && itemObj._hqPulpState === 'VALID') ? itemObj._hqPulpVal : prev._hqPulpVal,
                   isLyingPaper: prev.isLyingPaper || itemObj.isLyingPaper,
                   isPadded: prev.isPadded || itemObj.isPadded,
                   returnDepot: itemObj.returnDepot || prev.returnDepot,
@@ -4091,7 +4713,7 @@
               <td class="px-2.5 py-1.5">${c.driverName || '-'}</td>
               <td class="px-2.5 py-1.5 font-mono text-rose-600">${c.detDate || '-'}</td>
               <td class="px-2.5 py-1.5 font-semibold text-indigo-800">${c.pod || '-'}</td>
-              <td class="px-2.5 py-1.5 font-semibold">${c.returnCargoType}${c.returnCargoType === 'TESTLINER' ? ' (' + c.testlinerSubtype + ')' : ''}</td>
+              <td class="px-2.5 py-1.5 font-semibold">${c.returnCargoType ? (c.returnCargoType + (c.returnCargoType === 'TESTLINER' ? ' (' + (c.testlinerSubtype || '⚠️ Chưa rõ REUSE/TRANS') + ')' : '')) : '<span class="text-rose-600 font-bold">⚠️ Chưa có loại hàng</span>'}</td>
               <td class="px-2.5 py-1.5 text-center">${c.isHqPulp ? '<span class="text-amber-700 font-bold">✔ HQ</span>' : '-'}</td>
               <td class="px-2.5 py-1.5 text-center">${c.isLyingPaper ? '<span class="text-rose-600 font-bold">✔ Nằm</span>' : '-'}</td>
               <td class="px-2.5 py-1.5 text-center">${c.isPadded ? '<span class="text-blue-600 font-bold">✔ Lót su</span>' : '-'}</td>
@@ -4132,12 +4754,56 @@
       tempDailyImportList.forEach(item => {
         if (item.blNumber) affectedBls.add(item.blNumber.toUpperCase());
         const existIdx = contList.findIndex(c => c.containerNumber === item.containerNumber && (c.blNumber === item.blNumber || c.loadingDate === item.loadingDate));
+        const cleanItemForSave = (rawObj) => {
+          const copy = { ...rawObj };
+          delete copy._hasContTypeCol;
+          delete copy._parsedContType;
+          delete copy._hasChemCol;
+          delete copy._chemState;
+          delete copy._chemVal;
+          delete copy._hasHqPulpCol;
+          delete copy._hqPulpState;
+          delete copy._hqPulpVal;
+          return copy;
+        };
+
         if (existIdx >= 0) {
           if (dupOption === 'UPDATE') {
             const old = contList[existIdx];
+            // III.2: Bảo toàn loại hàng cũ nếu file mới để trống
+            const updatedCargoType = item.returnCargoType ? item.returnCargoType : (old.returnCargoType || '');
+            let updatedSubtype = '';
+            if (updatedCargoType === 'TESTLINER') {
+              if (item.testlinerSubtype) {
+                updatedSubtype = item.testlinerSubtype;
+              } else if (old.returnCargoType === 'TESTLINER' && old.testlinerSubtype) {
+                updatedSubtype = old.testlinerSubtype;
+              }
+            }
+
+            // III.3: Chỉ cập nhật Loại cont, Chemical/Equip, HQ pulp nếu sheet có cột và ô có giá trị hợp lệ
+            const updatedContType = (item._hasContTypeCol && item._parsedContType)
+              ? item._parsedContType
+              : (old.containerType || '40HC');
+
+            let updatedChem = !!old.isChemical;
+            if (item._hasChemCol) {
+              if (item._chemState === 'VALID') updatedChem = item._chemVal;
+            } else if (old.isChemical === undefined) {
+              updatedChem = !!item.isChemical;
+            }
+
+            let updatedHqPulp = !!old.isHqPulp;
+            if (item._hasHqPulpCol) {
+              if (item._hqPulpState === 'VALID') updatedHqPulp = item._hqPulpVal;
+            } else if (old.isHqPulp === undefined) {
+              updatedHqPulp = (updatedCargoType === 'PULP');
+            }
+
             contList[existIdx] = {
               ...old,
               loadingDate: item.loadingDate || old.loadingDate,
+              containerType: updatedContType,
               blNumber: item.blNumber || old.blNumber,
               carrier: item.carrier || old.carrier,
               eta: item.eta || old.eta,
@@ -4148,15 +4814,15 @@
               stoDate: item.stoDate || old.stoDate,
               demDate: item.demDate || old.demDate,
               detDate: item.detDate || old.detDate,
-              returnCargoType: item.returnCargoType || old.returnCargoType,
-              testlinerSubtype: item.testlinerSubtype !== undefined ? item.testlinerSubtype : old.testlinerSubtype,
+              returnCargoType: updatedCargoType,
+              testlinerSubtype: updatedSubtype,
               isLyingPaper: item.isLyingPaper || old.isLyingPaper,
               isPadded: item.isPadded || old.isPadded,
               emptyReturnDate: old.emptyReturnDate || item.emptyReturnDate,
               returnDepot: item.returnDepot || old.returnDepot,
               pod: item.pod || old.pod || '',
-              isChemical: old.isChemical !== undefined ? old.isChemical : !!item.isChemical,
-              isHqPulp: old.isHqPulp !== undefined ? old.isHqPulp : (item.returnCargoType === 'PULP'),
+              isChemical: updatedChem,
+              isHqPulp: updatedHqPulp,
               containerDamaged: item.containerDamaged || old.containerDamaged,
               remark: item.remark || old.remark
             };
@@ -4165,7 +4831,7 @@
             skipped++;
           }
         } else {
-          contList.push(item);
+          contList.push(cleanItemForSave(item));
           added++;
         }
       });
@@ -4194,29 +4860,222 @@
       alert(`✅ Hoàn tất Import Daily Loading Report!\n- Thêm mới: ${added} container\n- Cập nhật: ${updated} container\n- Bỏ qua trùng: ${skipped} container`);
     }
 
+    let contSortState = { direction: '' }; // '', 'asc', 'desc'
+
+    function toggleContLoadingDateSort() {
+      if (contSortState.direction === '') contSortState.direction = 'asc';
+      else if (contSortState.direction === 'asc') contSortState.direction = 'desc';
+      else contSortState.direction = '';
+      renderContTable();
+    }
+
+    function isContainerMissingCargoClassification(c) {
+      if (!c) return false;
+      const rType = (c.returnCargoType || '').trim().toUpperCase();
+      if (!rType || !['TESTLINER', 'PULP', 'EMPTY'].includes(rType)) return true;
+      if (rType === 'TESTLINER') {
+        const sub = (c.testlinerSubtype || '').trim().toUpperCase();
+        if (!sub || !['REUSE', 'TRANSLOADING'].includes(sub)) return true;
+      }
+      return false;
+    }
+
+    function computeDetDiscrepancies() {
+      const blDetMap = new Map();
+      blList.forEach(b => {
+        const cleanBl = cleanBlNumberKey(b.blNumber);
+        if (!cleanBl) return;
+        const normDet = normalizeDate(b.detDate);
+        if (normDet) blDetMap.set(cleanBl, normDet);
+      });
+
+      const contDetByBl = new Map();
+      contList.forEach(c => {
+        const cleanBl = cleanBlNumberKey(c.blNumber);
+        const normDet = normalizeDate(c.detDate);
+        if (cleanBl && normDet) {
+          if (!contDetByBl.has(cleanBl)) contDetByBl.set(cleanBl, new Set());
+          contDetByBl.get(cleanBl).add(normDet);
+        }
+      });
+
+      const mismatchContIds = new Set();
+      const mismatchBlSet = new Set();
+      const details = [];
+
+      contList.forEach(c => {
+        const cleanBl = cleanBlNumberKey(c.blNumber);
+        if (!cleanBl) return;
+        const contDet = normalizeDate(c.detDate);
+        const blDet = blDetMap.get(cleanBl) || '';
+        const blContDets = contDetByBl.get(cleanBl);
+        const hasMultiContDetInBl = blContDets && blContDets.size > 1;
+
+        let isMismatch = false;
+        let reason = '';
+
+        // Chỉ cảnh báo khi cả hai giá trị (Hạn DET tại B/L và Hạn DET tại Container) đều hợp lệ và khác nhau
+        if (blDet && contDet && blDet !== contDet) {
+          isMismatch = true;
+          reason = hasMultiContDetInBl
+            ? `Lệch hạn DET giữa B/L (${blDet}) và Container (${contDet}) [B/L có nhiều hạn DET cont: ${Array.from(blContDets).join(', ')}]`
+            : `Lệch hạn DET giữa B/L (${blDet}) và Container (${contDet})`;
+        }
+
+        if (isMismatch) {
+          mismatchContIds.add(c.id);
+          mismatchBlSet.add(cleanBl);
+          details.push({
+            contId: c.id,
+            containerNumber: c.containerNumber,
+            blNumber: cleanBl,
+            loadingDate: c.loadingDate || '',
+            blDetDate: blDet,
+            contDetDate: contDet,
+            reason
+          });
+        }
+      });
+
+      return { mismatchContIds, mismatchBlSet, details };
+    }
+
+    function filterContBySpecialAlert(alertType) {
+      const sel = document.getElementById('contSpecialAlertFilter');
+      if (sel) sel.value = alertType;
+      renderContTable();
+    }
+
+    function openContMissingCargoModal() {
+      const missingList = contList.filter(c => isContainerMissingCargoClassification(c));
+      const tbody = document.getElementById('contMissingCargoTbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (missingList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-emerald-600 font-semibold">Tất cả container đều đã có đầy đủ thông tin phân loại hàng đóng về!</td></tr>`;
+      } else {
+        missingList.forEach((c, idx) => {
+          const rType = (c.returnCargoType || '').trim().toUpperCase();
+          const reason = !rType
+            ? '<span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-bold">Chưa có loại hàng đóng về</span>'
+            : '<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-bold">TESTLINER chưa rõ REUSE / TRANSLOADING</span>';
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50';
+          tr.innerHTML = `
+            <td class="px-2.5 py-2 text-slate-400">${idx + 1}</td>
+            <td class="px-2.5 py-2 font-mono font-bold text-slate-900">${c.containerNumber}</td>
+            <td class="px-2.5 py-2 font-mono text-blue-700 font-semibold">${c.blNumber || '-'}</td>
+            <td class="px-2.5 py-2 font-mono">${c.loadingDate || '-'}</td>
+            <td class="px-2.5 py-2 font-semibold">${c.carrier || '-'}</td>
+            <td class="px-2.5 py-2">${reason}</td>
+            <td class="px-2.5 py-2 text-slate-500">${c.remark || '-'}</td>
+            <td class="px-2.5 py-2 text-center">
+              <button type="button" onclick="document.getElementById('contMissingCargoModal').classList.add('hidden'); editCont('${c.id}');" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold">Cập nhật</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+      document.getElementById('contMissingCargoModal').classList.remove('hidden');
+    }
+
+    function openContDetMismatchModal() {
+      const { details } = computeDetDiscrepancies();
+      const tbody = document.getElementById('contDetMismatchTbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (details.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-emerald-600 font-semibold">Không có sự khác biệt hạn DET nào giữa B/L và Container!</td></tr>`;
+      } else {
+        details.forEach((d, idx) => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50';
+          tr.innerHTML = `
+            <td class="px-2.5 py-2 text-slate-400">${idx + 1}</td>
+            <td class="px-2.5 py-2 font-mono font-bold text-blue-800">${d.blNumber}</td>
+            <td class="px-2.5 py-2 font-mono font-bold text-slate-900">${d.containerNumber}</td>
+            <td class="px-2.5 py-2 font-mono">${d.loadingDate || '-'}</td>
+            <td class="px-2.5 py-2 font-mono font-bold text-indigo-700">${d.blDetDate || '(Trống)'}</td>
+            <td class="px-2.5 py-2 font-mono font-bold text-rose-700">${d.contDetDate || '(Trống)'}</td>
+            <td class="px-2.5 py-2 text-rose-800 font-medium">${d.reason}</td>
+            <td class="px-2.5 py-2 text-center space-x-1 whitespace-nowrap">
+              <button type="button" onclick="document.getElementById('contDetMismatchModal').classList.add('hidden'); editCont('${d.contId}');" class="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold">Sửa Cont</button>
+              <button type="button" onclick="document.getElementById('contDetMismatchModal').classList.add('hidden'); jumpToBlDetail('${d.blNumber}');" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold">Xem B/L</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+      document.getElementById('contDetMismatchModal').classList.remove('hidden');
+    }
+
     function resetContTabFilters() {
       const s = document.getElementById('contSearchInput'); if (s) s.value = '';
       const cf = document.getElementById('contCargoFilter'); if (cf) cf.value = '';
       const chf = document.getElementById('contChemFilter'); if (chf) chf.value = '';
       const hqf = document.getElementById('contHqPulpFilter'); if (hqf) hqf.value = '';
+      const pf = document.getElementById('contPadFilter'); if (pf) pf.value = '';
       const fd = document.getElementById('contFromDateFilter'); if (fd) fd.value = '';
       const td = document.getElementById('contToDateFilter'); if (td) td.value = '';
       const rf = document.getElementById('contReturnStatusFilter'); if (rf) rf.value = '';
+      const saf = document.getElementById('contSpecialAlertFilter'); if (saf) saf.value = '';
       renderContTable();
     }
 
     function renderContTable() {
       document.getElementById('contTableTotal').innerText = contList.length;
 
+      // Cập nhật banner cảnh báo thiếu phân loại hàng & sai lệch hạn DET
+      const missingCargoList = contList.filter(c => isContainerMissingCargoClassification(c));
+      const detDiscInfo = computeDetDiscrepancies();
+
+      const alertsWrap = document.getElementById('contAlertsContainer');
+      const missingBanner = document.getElementById('contMissingCargoBanner');
+      const detBanner = document.getElementById('contDetMismatchBanner');
+
+      if (missingBanner) {
+        if (missingCargoList.length > 0) {
+          missingBanner.classList.remove('hidden');
+          document.getElementById('contMissingCargoCount').innerText = missingCargoList.length;
+        } else {
+          missingBanner.classList.add('hidden');
+        }
+      }
+      if (detBanner) {
+        if (detDiscInfo.mismatchContIds.size > 0) {
+          detBanner.classList.remove('hidden');
+          document.getElementById('contDetMismatchCount').innerText = detDiscInfo.mismatchContIds.size;
+          document.getElementById('contDetMismatchBlCount').innerText = detDiscInfo.mismatchBlSet.size;
+        } else {
+          detBanner.classList.add('hidden');
+        }
+      }
+      if (alertsWrap) {
+        if (missingCargoList.length > 0 || detDiscInfo.mismatchContIds.size > 0) {
+          alertsWrap.classList.remove('hidden');
+        } else {
+          alertsWrap.classList.add('hidden');
+        }
+      }
+
+      const sortIcon = document.getElementById('sortIcon_cont_loadingDate');
+      if (sortIcon) {
+        if (contSortState.direction === 'asc') sortIcon.className = 'fas fa-sort-up text-blue-600 ml-1';
+        else if (contSortState.direction === 'desc') sortIcon.className = 'fas fa-sort-down text-blue-600 ml-1';
+        else sortIcon.className = 'fas fa-sort text-slate-400 ml-1';
+      }
+
       const search = (document.getElementById('contSearchInput')?.value || '').toLowerCase().trim();
       const cargoFilter = document.getElementById('contCargoFilter')?.value || '';
       const chemFilter = document.getElementById('contChemFilter')?.value || '';
       const hqFilter = document.getElementById('contHqPulpFilter')?.value || '';
+      const padFilter = document.getElementById('contPadFilter')?.value || '';
       const fromDate = document.getElementById('contFromDateFilter')?.value || '';
       const toDate = document.getElementById('contToDateFilter')?.value || '';
       const retFilter = document.getElementById('contReturnStatusFilter')?.value || '';
+      const specialAlertFilter = document.getElementById('contSpecialAlertFilter')?.value || '';
 
-      const filtered = contList.filter(c => {
+      let filtered = contList.map((c, origIndex) => ({ c, origIndex })).filter(({ c }) => {
         if (search) {
           const text = `${c.containerNumber} ${c.blNumber || ''} ${c.pod || ''} ${c.truckPlate || ''} ${c.trailerPlate || ''} ${c.driverName || ''} ${c.driverPhone || ''} ${c.carrier || ''} ${c.returnDepot || ''} ${c.remark || ''}`.toLowerCase();
           if (!text.includes(search)) return false;
@@ -4226,17 +5085,39 @@
           if (cargoFilter === 'PULP' && c.returnCargoType !== 'PULP') return false;
           if (cargoFilter === 'TESTLINER_REUSE' && (c.returnCargoType !== 'TESTLINER' || c.testlinerSubtype !== 'REUSE')) return false;
           if (cargoFilter === 'TESTLINER_TRANSLOADING' && (c.returnCargoType !== 'TESTLINER' || c.testlinerSubtype !== 'TRANSLOADING')) return false;
+          if (cargoFilter === 'TESTLINER_UNSPECIFIED' && (c.returnCargoType !== 'TESTLINER' || (c.testlinerSubtype === 'REUSE' || c.testlinerSubtype === 'TRANSLOADING'))) return false;
+          if (cargoFilter === 'MISSING_CARGO' && !isContainerMissingCargoClassification(c)) return false;
         }
         if (chemFilter === 'YES' && !c.isChemical) return false;
         if (chemFilter === 'NO' && c.isChemical) return false;
         if (hqFilter === 'YES' && !c.isHqPulp) return false;
         if (hqFilter === 'NO' && c.isHqPulp) return false;
+        if (padFilter === 'YES' && !c.isPadded) return false;
+        if (padFilter === 'NO' && c.isPadded) return false;
         if (fromDate && (!c.loadingDate || c.loadingDate < fromDate)) return false;
         if (toDate && (!c.loadingDate || c.loadingDate > toDate)) return false;
         if (retFilter === 'UNRETURNED' && c.emptyReturnDate) return false;
         if (retFilter === 'RETURNED' && !c.emptyReturnDate) return false;
+        if (specialAlertFilter === 'MISSING_CARGO' && !isContainerMissingCargoClassification(c)) return false;
+        if (specialAlertFilter === 'DET_MISMATCH' && !detDiscInfo.mismatchContIds.has(c.id)) return false;
         return true;
       });
+
+      // III.5: Sắp xếp ổn định (stable sort) theo Ngày bốc container, không thay đổi thứ tự container trong cùng 1 ngày bốc / cùng B/L và không sửa contList gốc
+      if (contSortState.direction === 'asc' || contSortState.direction === 'desc') {
+        const dir = contSortState.direction === 'asc' ? 1 : -1;
+        filtered.sort((a, b) => {
+          const da = normalizeDate(a.c.loadingDate) || '';
+          const db = normalizeDate(b.c.loadingDate) || '';
+          if (!da && !db) return a.origIndex - b.origIndex;
+          if (!da) return 1; // Ngày bốc trống luôn xếp cuối nhất quán
+          if (!db) return -1;
+          if (da !== db) return da.localeCompare(db) * dir;
+          return a.origIndex - b.origIndex;
+        });
+      }
+
+      filtered = filtered.map(item => item.c);
 
       document.getElementById('contTableCount').innerText = filtered.length;
       const tbody = document.getElementById('contTableBody');
@@ -4250,17 +5131,20 @@
         return;
       }
 
-      let countReuse = 0, countTrans = 0, countPulp = 0, countEmpty = 0, countLying = 0, countPad = 0, countChem = 0, countHqPulp = 0;
+      let countReuse = 0, countTrans = 0, countPulp = 0, countEmpty = 0, countMissingCargo = 0, countLying = 0, countPad = 0, countChem = 0, countHqPulp = 0;
       const limitDays = parseInt(appSettings.warningDays, 10) || 3;
 
       filtered.forEach((c, idx) => {
         if (c.returnCargoType === 'TESTLINER') {
           if (c.testlinerSubtype === 'TRANSLOADING') countTrans++;
-          else countReuse++;
+          else if (c.testlinerSubtype === 'REUSE') countReuse++;
+          else countMissingCargo++;
         } else if (c.returnCargoType === 'PULP') {
           countPulp++;
-        } else {
+        } else if (c.returnCargoType === 'EMPTY') {
           countEmpty++;
+        } else {
+          countMissingCargo++;
         }
         if (c.isLyingPaper) countLying++;
         if (c.isPadded) countPad++;
@@ -4292,14 +5176,20 @@
           <td data-col="truckTrailer" class="px-2 py-1.5 font-mono whitespace-nowrap">${c.truckPlate || '-'} / ${c.trailerPlate || '-'}</td>
           <td data-col="driver" class="px-2 py-1.5">${c.driverName || '-'}${c.driverPhone ? `<span class="block text-[10px] font-mono text-slate-500">${c.driverPhone}</span>` : ''}</td>
           <td data-col="stoDem" class="px-2 py-1.5 font-mono text-[11px] text-slate-500 whitespace-nowrap">${c.stoDate || '-'}<br>${c.demDate || '-'}</td>
-          <td data-col="detDate" class="px-2 py-1.5 font-mono font-medium whitespace-nowrap">${c.detDate || '-'} ${badgeDet}</td>
+          <td data-col="detDate" class="px-2 py-1.5 font-mono font-medium whitespace-nowrap">
+            ${c.detDate || '-'} ${badgeDet}
+            ${detDiscInfo.mismatchContIds.has(c.id) ? `<span title="Hạn DET lệch với B/L hoặc không thống nhất trong cùng B/L" class="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300 text-[10px] font-bold ml-1">⚠️ Lệch DET</span>` : ''}
+          </td>
           <td data-col="returnCargoType" class="px-2 py-1.5 whitespace-nowrap">
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${
-              c.returnCargoType === 'EMPTY' ? 'bg-slate-100 text-slate-700' :
-              c.returnCargoType === 'TESTLINER' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-800'
-            }">
-              ${c.returnCargoType}${c.returnCargoType === 'TESTLINER' ? ` (${c.testlinerSubtype})` : ''}
-            </span>
+            ${isContainerMissingCargoClassification(c)
+              ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">⚠️ ${c.returnCargoType === 'TESTLINER' ? 'TESTLINER (Chưa rõ REUSE/TRANS)' : 'Chưa phân loại'}</span>`
+              : `<span class="px-2 py-0.5 rounded text-[10px] font-bold ${
+                  c.returnCargoType === 'EMPTY' ? 'bg-slate-100 text-slate-700' :
+                  c.returnCargoType === 'TESTLINER' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-800'
+                }">
+                  ${c.returnCargoType}${c.returnCargoType === 'TESTLINER' ? ` (${c.testlinerSubtype})` : ''}
+                </span>`
+            }
           </td>
           <td data-col="isChemical" class="px-2 py-1.5 text-center">${c.isChemical ? '<span class="px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 font-bold text-[10px]">✔ Chem/Equip</span>' : '<span class="text-slate-300">-</span>'}</td>
           <td data-col="isHqPulp" class="px-2 py-1.5 text-center">${c.isHqPulp ? '<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-bold text-[10px]">✔ HQ PULP</span>' : '<span class="text-slate-300">-</span>'}</td>
@@ -4331,6 +5221,7 @@
               <span>TRANSLOADING: <strong class="text-indigo-700">${countTrans}</strong></span>
               <span>PULP: <strong class="text-amber-700">${countPulp}</strong></span>
               <span>EMPTY: <strong class="text-slate-700">${countEmpty}</strong></span>
+              ${countMissingCargo > 0 ? `<span>• Thiếu phân loại: <strong class="text-rose-700">${countMissingCargo}</strong></span>` : ''}
               <span>• HQ (PULP): <strong class="text-amber-800">${countHqPulp}</strong></span>
               <span>• Chemical/Equip: <strong class="text-purple-700">${countChem}</strong></span>
               <span>• Xếp nằm: <strong class="text-rose-600">${countLying}</strong></span>
@@ -4495,8 +5386,7 @@
           continue;
         }
 
-        const returnDepot = colReturnDepot !== -1 && row[colReturnDepot] ? String(row[colReturnDepot]).trim().toUpperCase() : '';
-
+        // III.1: Bỏ qua hoàn toàn cột Depot / Bãi trả rỗng từ Google Sheets hoặc file trả rỗng đồng bộ
         const matchedConts = contList.filter(c => c.containerNumber === contNo);
         if (matchedConts.length === 0) {
           skippedCount++;
@@ -4505,9 +5395,8 @@
 
         matchedConts.forEach(c => {
           if (!c.emptyReturnDate || allowOverwrite) {
-            if (c.emptyReturnDate !== returnDate || (returnDepot && c.returnDepot !== returnDepot)) {
+            if (c.emptyReturnDate !== returnDate) {
               c.emptyReturnDate = returnDate;
-              if (returnDepot) c.returnDepot = returnDepot;
               updatedCount++;
             } else {
               skippedCount++;
@@ -4524,9 +5413,9 @@
           entityType: 'Container',
           recordCode: sourceName,
           action: 'ĐỒNG BỘ',
-          changedFields: 'emptyReturnDate, returnDepot',
+          changedFields: 'emptyReturnDate',
           oldVal: `Chưa trả rỗng: ${updatedCount} cont`,
-          newVal: `Đã cập nhật trả rỗng: ${updatedCount} cont (Bỏ qua: ${skippedCount}, Lỗi: ${errorCount})`,
+          newVal: `Đã cập nhật ngày trả rỗng: ${updatedCount} cont (Giữ nguyên Depot hiện có; Bỏ qua: ${skippedCount}, Lỗi: ${errorCount})`,
           source: `Đồng bộ ${sourceName}`
         });
       }
@@ -4910,7 +5799,7 @@
         'HẠN DEM': b.demDate || '',
         'HẠN DET': b.detDate || '',
         'BÃI TRẢ RỖNG': b.returnDepot || '',
-        'STATUS': b.status || 'D/O',
+        'STATUS': b.status || '',
         'GHI CHÚ GỐC': b.notes || '',
         'GHI CHÚ DỊCH TIẾNG VIỆT': b.notesVi || ''
       }));
@@ -5056,7 +5945,6 @@
       const rmk = document.getElementById('qr_returnRemark').value.trim();
       if (rmk) c.remark = rmk;
 
-      saveData();
       recordAuditLog({
         module: 'Module 4 - Theo dõi trả rỗng',
         entityType: 'Container',
@@ -5069,7 +5957,7 @@
         newJson: { emptyReturnDate: c.emptyReturnDate, returnDepot: c.returnDepot, remark: c.remark },
         source: 'Người dùng thao tác trực tiếp'
       });
-      safeStorage.setItem(STORAGE_AUDIT_LOG_KEY, JSON.stringify(auditLogList));
+      saveData();
       updateCounts();
       closeQuickReturnModal();
       renderContTable();
@@ -5135,7 +6023,7 @@
           document.getElementById('m_blStoDate').value = b.stoDate || '';
           document.getElementById('m_blDemDate').value = b.demDate || '';
           document.getElementById('m_blDetDate').value = b.detDate || '';
-          document.getElementById('m_blStatus').value = b.status || 'D/O';
+          document.getElementById('m_blStatus').value = b.status || '';
           document.getElementById('m_blNotes').value = b.notes || '';
           const vEl = document.getElementById('m_blNotesVi');
           if (vEl) vEl.value = b.notesVi || translateChineseNoteToVi(b.notes || '').viText;
@@ -5191,7 +6079,7 @@
       else if (totCont > 0 && (delGw === 0 || delGw > totGw)) delGw = Number(((delCont / totCont) * totGw).toFixed(3));
       const remGw = remCont === 0 ? 0 : Math.max(0, Number((totGw - delGw).toFixed(3)));
 
-      let statusVal = document.getElementById('m_blStatus').value.trim() || 'D/O';
+      let statusVal = document.getElementById('m_blStatus').value.trim();
       if (statusVal.toUpperCase() === 'D/0') statusVal = 'D/O';
 
       const rawNotes = document.getElementById('m_blNotes').value.trim();
@@ -5242,7 +6130,6 @@
         }
       });
 
-      saveData();
       if (oldRecord) {
         const diffInfo = computeObjectDiff(oldRecord, item);
         recordAuditLog({
@@ -5271,7 +6158,7 @@
           source: 'Người dùng thao tác trực tiếp'
         });
       }
-      safeStorage.setItem(STORAGE_AUDIT_LOG_KEY, JSON.stringify(auditLogList));
+      saveData();
       updateCounts();
       refreshBlMultiDropdownOptions();
       closeBlModal();
@@ -5288,7 +6175,6 @@
       if (confirm(`Bạn chắc chắn muốn xóa B/L [${b.blNumber}]?`)) {
         const oldSnap = { ...b };
         blList = blList.filter(x => x.id !== id);
-        saveData();
         recordAuditLog({
           module: 'Module 2 - Hàng tồn cảng (B/L)',
           entityType: 'B/L',
@@ -5301,7 +6187,7 @@
           newJson: null,
           source: 'Người dùng thao tác trực tiếp'
         });
-        safeStorage.setItem(STORAGE_AUDIT_LOG_KEY, JSON.stringify(auditLogList));
+        saveData();
         updateCounts();
         refreshBlMultiDropdownOptions();
         renderBlTable();
@@ -5413,8 +6299,8 @@
           document.getElementById('m_contStoDate').value = c.stoDate || '';
           document.getElementById('m_contDemDate').value = c.demDate || '';
           document.getElementById('m_contDetDate').value = c.detDate || '';
-          document.getElementById('m_contReturnCargoType').value = c.returnCargoType || 'EMPTY';
-          document.getElementById('m_contTestlinerSubtype').value = c.testlinerSubtype || 'REUSE';
+          document.getElementById('m_contReturnCargoType').value = c.returnCargoType !== undefined && c.returnCargoType !== null ? c.returnCargoType : '';
+          document.getElementById('m_contTestlinerSubtype').value = c.testlinerSubtype !== undefined && c.testlinerSubtype !== null ? c.testlinerSubtype : '';
           document.getElementById('m_contPod').value = c.pod || '';
           document.getElementById('m_contIsChemical').checked = !!c.isChemical;
           if (hqChk) {
@@ -5525,7 +6411,6 @@
       reconcileSingleBlWithContainers(blNo);
       if (oldBlNo && oldBlNo !== blNo) reconcileSingleBlWithContainers(oldBlNo);
 
-      saveData();
       if (oldRecord) {
         const diffInfo = computeObjectDiff(oldRecord, item);
         recordAuditLog({
@@ -5554,7 +6439,7 @@
           source: 'Người dùng thao tác trực tiếp'
         });
       }
-      safeStorage.setItem(STORAGE_AUDIT_LOG_KEY, JSON.stringify(auditLogList));
+      saveData();
       updateCounts();
       refreshSumMultiDropdownOptions();
       closeContModal();
@@ -5574,7 +6459,6 @@
         const blNo = c.blNumber;
         contList = contList.filter(x => x.id !== id);
         if (blNo) reconcileSingleBlWithContainers(blNo);
-        saveData();
         recordAuditLog({
           module: 'Module 4 - Quản lý Container & Đóng hàng',
           entityType: 'Container',
@@ -5587,7 +6471,7 @@
           newJson: null,
           source: 'Người dùng thao tác trực tiếp'
         });
-        safeStorage.setItem(STORAGE_AUDIT_LOG_KEY, JSON.stringify(auditLogList));
+        saveData();
         updateCounts();
         refreshSumMultiDropdownOptions();
         renderContTable();
@@ -6975,7 +7859,7 @@
         cArr.forEach(c => {
           if (c.returnCargoType === 'TESTLINER') {
             if (c.testlinerSubtype === 'TRANSLOADING') transloading++;
-            else if (c.testlinerSubtype === 'REUSE' || !c.testlinerSubtype) reuse++;
+            else if (c.testlinerSubtype === 'REUSE') reuse++;
             else unclassified++;
           } else if (c.returnCargoType === 'PULP') {
             pulp++;
@@ -7128,8 +8012,67 @@
         });
       });
 
+      // IV.3: Xác định số ngày bốc hợp lệ khác nhau của từng B/L (đã chuẩn hóa)
+      const blValidLoadingDatesMap = new Map();
+      contList.forEach(c => {
+        const cleanBl = cleanBlNumberKey(c.blNumber);
+        const normLd = normalizeDate(c.loadingDate);
+        if (cleanBl && normLd) {
+          if (!blValidLoadingDatesMap.has(cleanBl)) blValidLoadingDatesMap.set(cleanBl, new Set());
+          blValidLoadingDatesMap.get(cleanBl).add(normLd);
+        }
+      });
+      resultRows.forEach(r => {
+        const cleanBl = cleanBlNumberKey(r.blNumber);
+        const normLd = normalizeDate(r.loadingDate);
+        if (cleanBl && normLd) {
+          if (!blValidLoadingDatesMap.has(cleanBl)) blValidLoadingDatesMap.set(cleanBl, new Set());
+          blValidLoadingDatesMap.get(cleanBl).add(normLd);
+        }
+      });
+
+      // IV.4: Đối chiếu ATA trong Module Tổng hợp với ETA của B/L tại Module 2
+      resultRows.forEach(r => {
+        const cleanBl = cleanBlNumberKey(r.blNumber);
+        const loadDatesSet = blValidLoadingDatesMap.get(cleanBl);
+        const loadDatesArr = loadDatesSet ? Array.from(loadDatesSet).sort() : [];
+        r.distinctLoadingDates = loadDatesArr;
+        r.hasMultiLoadingDates = loadDatesArr.length >= 2;
+
+        const blObj = blMap.get(cleanBl) || null;
+        r.blExistsInMod2 = !!blObj;
+        r.blEta = blObj ? normalizeDate(blObj.eta) : '';
+        r.normAta = normalizeDate(r.ata);
+
+        if (!blObj) {
+          r.ataEtaStatus = 'BL_NOT_FOUND';
+          r.ataEtaLabel = 'Không tìm thấy B/L (M2)';
+        } else if (r.blEta && r.normAta) {
+          if (r.blEta !== r.normAta) {
+            r.ataEtaStatus = 'ATA_ETA_MISMATCH';
+            r.ataEtaLabel = `Lệch ETA (${r.blEta})`;
+          } else {
+            r.ataEtaStatus = 'MATCH';
+            r.ataEtaLabel = 'Khớp ETA';
+          }
+        } else if (!r.blEta && !r.normAta) {
+          r.ataEtaStatus = 'MISSING_BOTH';
+          r.ataEtaLabel = 'Thiếu cả ATA & ETA';
+        } else if (!r.blEta) {
+          r.ataEtaStatus = 'MISSING_ETA';
+          r.ataEtaLabel = 'Thiếu ETA (Module 2)';
+        } else {
+          r.ataEtaStatus = 'MISSING_ATA';
+          r.ataEtaLabel = `Thiếu ATA (ETA: ${r.blEta})`;
+        }
+      });
+
       resultRows.sort((a, b) => {
-        const dCmp = String(a.loadingDate || '').localeCompare(String(b.loadingDate || ''));
+        const da = normalizeDate(a.loadingDate) || String(a.loadingDate || '');
+        const db = normalizeDate(b.loadingDate) || String(b.loadingDate || '');
+        if (!da && db) return 1;
+        if (da && !db) return -1;
+        const dCmp = da.localeCompare(db);
         if (dCmp !== 0) return dCmp;
         return String(a.blNumber || '').localeCompare(String(b.blNumber || ''));
       });
@@ -7361,7 +8304,39 @@
           : `<span class="text-slate-400 italic">Đang hiển thị toàn bộ bảng tổng hợp (Chưa áp dụng bộ lọc)</span>`;
       }
 
-      const filtered = allRows.filter(r => {
+      // Cập nhật số liệu thống kê cảnh báo B/L có >= 2 ngày bốc & Đối chiếu ATA/ETA trên toàn bộ dữ liệu Module 5
+      const multiDateBlsMap = new Map();
+      let ataEtaMismatchCount = 0, missingAtaCount = 0, missingEtaCount = 0, missingBlRefCount = 0;
+
+      allRows.forEach(r => {
+        if (r.hasMultiLoadingDates) {
+          multiDateBlsMap.set(r.blNumber, r.distinctLoadingDates);
+        }
+        if (r.ataEtaStatus === 'ATA_ETA_MISMATCH') ataEtaMismatchCount++;
+        else if (r.ataEtaStatus === 'MISSING_ATA' || r.ataEtaStatus === 'MISSING_BOTH') missingAtaCount++;
+        if (r.ataEtaStatus === 'MISSING_ETA' || r.ataEtaStatus === 'MISSING_BOTH') missingEtaCount++;
+        if (r.ataEtaStatus === 'BL_NOT_FOUND') missingBlRefCount++;
+      });
+
+      const elMultiBl = document.getElementById('sumMultiDateBlCount');
+      if (elMultiBl) elMultiBl.innerText = multiDateBlsMap.size;
+      const elMismatch = document.getElementById('sumAtaEtaMismatchCount');
+      if (elMismatch) elMismatch.innerText = ataEtaMismatchCount;
+      const elMissAta = document.getElementById('sumMissingAtaCount');
+      if (elMissAta) elMissAta.innerText = missingAtaCount;
+      const elMissEta = document.getElementById('sumMissingEtaCount');
+      if (elMissEta) elMissEta.innerText = missingEtaCount;
+      const elMissBl = document.getElementById('sumMissingBlRefCount');
+      if (elMissBl) elMissBl.innerText = missingBlRefCount;
+
+      const sortIconSum = document.getElementById('sortIcon_sum_loadingDate');
+      if (sortIconSum) {
+        sortIconSum.className = window._sumSortDirection === 'desc'
+          ? 'fas fa-sort-down text-indigo-600 ml-1'
+          : 'fas fa-sort-up text-indigo-600 ml-1';
+      }
+
+      let filtered = allRows.map((r, origIndex) => ({ r, origIndex })).filter(({ r }) => {
         if (!matchDateByMode(r.loadingDate, periodMode, 'sumDate')) return false;
         if (sumMultiState.carrier.size > 0) {
           if (!sumMultiState.carrier.has((r.carrier || '').trim().toUpperCase())) return false;
@@ -7391,9 +8366,28 @@
         if (hqPulpF === 'YES' && !(r.hqPulp > 0)) return false;
         if (hqPulpF === 'NO' && r.hqPulp > 0) return false;
         if (dnMonthF && !(r.debitNoteDate || '').startsWith(dnMonthF)) return false;
-        if (discF === 'MISMATCH' && !r.hasCountMismatch && !r.hasAtaConflict) return false;
+        if (discF === 'MISMATCH' && !r.hasCountMismatch && !r.hasAtaConflict && r.ataEtaStatus !== 'ATA_ETA_MISMATCH' && !r.hasMultiLoadingDates) return false;
+        if (discF === 'MULTI_LOAD_DATE' && !r.hasMultiLoadingDates) return false;
+        if (discF === 'ATA_ETA_MISMATCH' && r.ataEtaStatus !== 'ATA_ETA_MISMATCH') return false;
+        if (discF === 'MISSING_ETA' && r.ataEtaStatus !== 'MISSING_ETA' && r.ataEtaStatus !== 'MISSING_BOTH') return false;
+        if (discF === 'MISSING_ATA' && r.ataEtaStatus !== 'MISSING_ATA' && r.ataEtaStatus !== 'MISSING_BOTH') return false;
+        if (discF === 'BL_NOT_FOUND' && r.ataEtaStatus !== 'BL_NOT_FOUND') return false;
+        if (discF === 'COUNT_MISMATCH' && !r.hasCountMismatch) return false;
         return true;
       });
+
+      // IV.2: Sắp xếp ổn định theo Ngày bốc container tăng dần / giảm dần, giữ nguyên thứ tự tương đối khi cùng ngày bốc
+      const sumDir = window._sumSortDirection === 'desc' ? -1 : 1;
+      filtered.sort((a, b) => {
+        const da = normalizeDate(a.r.loadingDate) || String(a.r.loadingDate || '');
+        const db = normalizeDate(b.r.loadingDate) || String(b.r.loadingDate || '');
+        if (!da && !db) return a.origIndex - b.origIndex;
+        if (!da) return 1;
+        if (!db) return -1;
+        if (da !== db) return da.localeCompare(db) * sumDir;
+        return a.origIndex - b.origIndex;
+      });
+      filtered = filtered.map(item => item.r);
 
       window._lastModule5FilteredRows = filtered;
       window._lastModule5AllRows = allRows;
@@ -7458,7 +8452,14 @@
 
         let ataHtml = r.ata || '<span class="text-slate-300">-</span>';
         if (r.hasAtaConflict) {
-          ataHtml += `<span class="block text-[10px] bg-rose-100 text-rose-700 px-1 rounded font-bold" title="B/L có nhiều ATA không thống nhất: ${r.ataConflictValues}">⚠️ Lệch ATA</span>`;
+          ataHtml += `<span class="block text-[10px] bg-rose-100 text-rose-700 px-1 rounded font-bold mt-0.5" title="B/L có nhiều ATA không thống nhất: ${r.ataConflictValues}">⚠️ Lệch nội bộ ATA</span>`;
+        }
+        if (r.ataEtaStatus === 'ATA_ETA_MISMATCH') {
+          ataHtml += `<span class="block text-[10px] bg-rose-100 text-rose-800 border border-rose-300 px-1 rounded font-bold mt-0.5" title="Khác với ngày ETA tại Module 2 (${r.blEta})">🔄 ≠ ETA: ${r.blEta}</span>`;
+        } else if (r.ataEtaStatus === 'BL_NOT_FOUND') {
+          ataHtml += `<span class="block text-[10px] bg-slate-100 text-slate-600 px-1 rounded mt-0.5" title="Không tìm thấy B/L tương ứng tại Module 2">❓ Chưa có B/L M2</span>`;
+        } else if (r.ataEtaStatus === 'MISSING_ETA') {
+          ataHtml += `<span class="block text-[10px] bg-amber-50 text-amber-700 px-1 rounded mt-0.5" title="B/L tại Module 2 đang trống ETA">⏳ Thiếu ETA M2</span>`;
         }
 
         let depotHtml = r.returnDepot || '<span class="text-slate-300">-</span>';
@@ -7480,6 +8481,7 @@
           <td data-col="loadingDate" class="px-2 py-1.5 font-mono whitespace-nowrap font-semibold">${r.loadingDate || '-'}</td>
           <td data-col="blNumber" class="px-2 py-1.5 font-mono font-bold text-blue-800 sticky-col-bl whitespace-nowrap">
             <button type="button" onclick="openGroupContDetailModal('${safeKey}')" class="hover:underline text-left" title="Xem danh sách container của tổ hợp này">${r.rawBlDisplay || r.blNumber}</button>
+            ${r.hasMultiLoadingDates ? `<span class="block text-[10px] bg-amber-100 text-amber-900 border border-amber-300 px-1 rounded font-bold mt-0.5" title="B/L bốc trong ${r.distinctLoadingDates.length} ngày: ${r.distinctLoadingDates.join(', ')}">📅 ${r.distinctLoadingDates.length} ngày bốc</span>` : ''}
           </td>
           <td data-col="carrier" class="px-2 py-1.5 font-semibold text-slate-800">${r.carrier || '-'}</td>
           <td data-col="ata" class="px-2 py-1.5 font-mono whitespace-nowrap">${ataHtml}</td>
@@ -7595,11 +8597,128 @@
       return summaryMetaList[idx];
     }
 
+    window._sumSortDirection = 'asc';
+
+    function toggleSumLoadingDateSort() {
+      window._sumSortDirection = window._sumSortDirection === 'asc' ? 'desc' : 'asc';
+      renderModule5Summary();
+    }
+
+    function applySumQuickAlertFilter(filterVal) {
+      const sel = document.getElementById('sumDiscrepancyFilter');
+      if (sel) sel.value = filterVal;
+      renderModule5Summary();
+    }
+
+    function openSumMultiLoadDateModal() {
+      const allRows = buildModule5SummaryRows();
+      const blMap = new Map();
+      allRows.forEach(r => {
+        if (r.hasMultiLoadingDates) {
+          if (!blMap.has(r.blNumber)) {
+            blMap.set(r.blNumber, {
+              blNumber: r.blNumber,
+              carrier: r.carrier || '-',
+              dates: r.distinctLoadingDates,
+              totalCont: 0
+            });
+          }
+          const entry = blMap.get(r.blNumber);
+          entry.totalCont += (Number(r.totalCont) || 0);
+        }
+      });
+
+      const tbody = document.getElementById('sumMultiLoadDateTbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      const list = Array.from(blMap.values());
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-emerald-600 font-semibold">Không có B/L nào bốc từ 2 ngày trở lên!</td></tr>`;
+      } else {
+        list.forEach((item, idx) => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50';
+          tr.innerHTML = `
+            <td class="px-2.5 py-2 text-slate-400">${idx + 1}</td>
+            <td class="px-2.5 py-2 font-mono font-bold text-blue-800">${item.blNumber}</td>
+            <td class="px-2.5 py-2 font-semibold">${item.carrier}</td>
+            <td class="px-2.5 py-2 text-center font-bold text-amber-800">${item.dates.length} ngày</td>
+            <td class="px-2.5 py-2 font-mono text-slate-700">${item.dates.join(' • ')}</td>
+            <td class="px-2.5 py-2 text-center font-bold">${item.totalCont}</td>
+            <td class="px-2.5 py-2 text-center">
+              <button type="button" onclick="document.getElementById('sumMultiLoadDateModal').classList.add('hidden'); document.getElementById('sumKeyword').value='${item.blNumber}'; renderModule5Summary();" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold">Xem các dòng</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+      document.getElementById('sumMultiLoadDateModal').classList.remove('hidden');
+    }
+
+    function openSumAtaEtaModal() {
+      renderSumAtaEtaModalTable();
+      document.getElementById('sumAtaEtaModal').classList.remove('hidden');
+    }
+
+    function renderSumAtaEtaModalTable() {
+      const allRows = buildModule5SummaryRows();
+      const statusFilter = document.getElementById('modalAtaEtaStatusFilter')?.value || 'ALL';
+      const filtered = allRows.filter(r => {
+        if (statusFilter === 'ALL') return true;
+        if (statusFilter === 'MISSING_ATA') return r.ataEtaStatus === 'MISSING_ATA' || r.ataEtaStatus === 'MISSING_BOTH';
+        if (statusFilter === 'MISSING_ETA') return r.ataEtaStatus === 'MISSING_ETA' || r.ataEtaStatus === 'MISSING_BOTH';
+        return r.ataEtaStatus === statusFilter;
+      });
+
+      const tbody = document.getElementById('sumAtaEtaModalTbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-emerald-600 font-semibold">Không có bản ghi nào thuộc trạng thái đối chiếu này!</td></tr>`;
+        return;
+      }
+
+      filtered.forEach((r, idx) => {
+        const safeKey = r.key.replace(/'/g, "\\'");
+        let badgeHtml = '';
+        if (r.ataEtaStatus === 'ATA_ETA_MISMATCH') {
+          badgeHtml = `<span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-bold">🔄 Sai lệch ATA ≠ ETA</span>`;
+        } else if (r.ataEtaStatus === 'MATCH') {
+          badgeHtml = `<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">✅ Khớp</span>`;
+        } else if (r.ataEtaStatus === 'BL_NOT_FOUND') {
+          badgeHtml = `<span class="px-2 py-0.5 rounded bg-slate-200 text-slate-800 font-bold">❓ Không tìm thấy B/L tại Module 2</span>`;
+        } else if (r.ataEtaStatus === 'MISSING_ETA') {
+          badgeHtml = `<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">⏳ Thiếu ETA tại Module 2</span>`;
+        } else if (r.ataEtaStatus === 'MISSING_ATA') {
+          badgeHtml = `<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">⏳ Thiếu ATA tại Module Tổng hợp</span>`;
+        } else {
+          badgeHtml = `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600">⏳ Thiếu cả ATA &amp; ETA</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50';
+        tr.innerHTML = `
+          <td class="px-2.5 py-2 text-slate-400">${idx + 1}</td>
+          <td class="px-2.5 py-2 font-mono font-bold text-blue-800">${r.blNumber}</td>
+          <td class="px-2.5 py-2 font-mono">${r.loadingDate || '-'}</td>
+          <td class="px-2.5 py-2 font-semibold">${r.carrier || '-'}</td>
+          <td class="px-2.5 py-2 font-mono font-bold text-indigo-700">${r.blEta || '(Trống)'}</td>
+          <td class="px-2.5 py-2 font-mono font-bold text-rose-700">${r.normAta || '(Trống)'}</td>
+          <td class="px-2.5 py-2">${badgeHtml}</td>
+          <td class="px-2.5 py-2 text-center space-x-1 whitespace-nowrap">
+            <button type="button" onclick="document.getElementById('sumAtaEtaModal').classList.add('hidden'); openSummaryMetaModal('${safeKey}');" class="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold">Sửa ATA</button>
+            ${r.blExistsInMod2 ? `<button type="button" onclick="document.getElementById('sumAtaEtaModal').classList.add('hidden'); jumpToBlDetail('${r.blNumber}');" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold">Xem B/L</button>` : ''}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
     function toggleSummaryCheckboxInline(key, field, isChecked) {
       const meta = findOrCreateSummaryMetaByKey(key);
       const oldVal = !!meta[field];
       meta[field] = !!isChecked;
-      saveData();
+      meta.updatedAt = new Date().toISOString();
       recordAuditLog({
         module: 'Module 5 - Tổng hợp & Thống kê',
         entityType: 'Dữ liệu tổng hợp',
@@ -7610,8 +8729,7 @@
         newVal: `${field}: ${isChecked ? 'Y' : 'N'}`,
         source: 'Người dùng thao tác trực tiếp'
       });
-      safeStorage.setItem(STORAGE_AUDIT_LOG_KEY, JSON.stringify(auditLogList));
-      updateCounts();
+      saveData();
       renderModule5Summary();
     }
 
@@ -7702,21 +8820,21 @@
       const exRate = document.getElementById('sm_exchangeRate').value.trim();
       meta.exchangeRate = exRate !== '' ? parseFloat(exRate) : '';
       meta.note = document.getElementById('sm_note').value.trim();
+      meta.updatedAt = new Date().toISOString();
 
-      saveData();
       recordAuditLog({
         module: 'Module 5 - Tổng hợp & Thống kê',
         entityType: 'Dữ liệu tổng hợp',
         recordCode: `${cleanBl} (${ld})`,
-        action: oldSnap.debitNoteNo || oldSnap.importedTotalCont ? 'SỬA' : 'THÊM MỚI',
-        changedFields: 'Cập nhật Local charges / Debit Note / Tỷ giá',
-        oldVal: `DN: ${oldSnap.debitNoteNo || '-'}, Tỷ giá: ${oldSnap.exchangeRate || '-'}, DO:${oldSnap.doFlag ? 'Y' : 'N'}`,
-        newVal: `DN: ${meta.debitNoteNo || '-'}, Ngày DN: ${meta.debitNoteDate || '-'}, Tỷ giá: ${meta.exchangeRate || '-'}, DO:${meta.doFlag ? 'Y' : 'N'}, DropOff:${meta.dropOff || 0}`,
+        action: (oldSnap.debitNoteNo || oldSnap.importedTotalCont || oldSnap.ata) ? 'SỬA' : 'THÊM MỚI',
+        changedFields: 'Cập nhật Local charges / Debit Note / ATA / Tỷ giá',
+        oldVal: `ATA: ${oldSnap.ata || '-'}, DN: ${oldSnap.debitNoteNo || '-'}, Tỷ giá: ${oldSnap.exchangeRate || '-'}, DO:${oldSnap.doFlag ? 'Y' : 'N'}`,
+        newVal: `ATA: ${meta.ata || '-'}, DN: ${meta.debitNoteNo || '-'}, Ngày DN: ${meta.debitNoteDate || '-'}, Tỷ giá: ${meta.exchangeRate || '-'}, DO:${meta.doFlag ? 'Y' : 'N'}, DropOff:${meta.dropOff || 0}`,
         oldJson: oldSnap,
         newJson: meta,
         source: 'Người dùng thao tác trực tiếp'
       });
-      safeStorage.setItem(STORAGE_AUDIT_LOG_KEY, JSON.stringify(auditLogList));
+      saveData();
       updateCounts();
       refreshSumMultiDropdownOptions();
       closeSummaryMetaModal();
@@ -7730,7 +8848,6 @@
       }
       const oldMeta = summaryMetaList.find(sm => cleanBlNumberKey(sm.blNumber) === cleanBl && (sm.loadingDate || '').trim() === ld);
       summaryMetaList = summaryMetaList.filter(sm => !(cleanBlNumberKey(sm.blNumber) === cleanBl && (sm.loadingDate || '').trim() === ld));
-      saveData();
       if (oldMeta) {
         recordAuditLog({
           module: 'Module 5 - Tổng hợp & Thống kê',
@@ -7744,8 +8861,8 @@
           newJson: null,
           source: 'Người dùng thao tác trực tiếp'
         });
-        safeStorage.setItem(STORAGE_AUDIT_LOG_KEY, JSON.stringify(auditLogList));
       }
+      saveData();
       updateCounts();
       renderModule5Summary();
     }
