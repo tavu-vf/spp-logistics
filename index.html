@@ -4463,32 +4463,33 @@
               const rawRemark = colRemark !== -1 ? String(row[colRemark] || '').trim() : '';
               const remarkLower = rawRemark.toLowerCase();
 
-              // III.2: Không tự suy diễn loại hàng hoặc hình thức REUSE / TRANSLOADING khi thiếu dữ liệu
+              // I.1 & III.2: Không tự suy diễn loại hàng là EMPTY khi cột Com. (comVal) trống
               let retType = '';
               let testlinerSub = '';
 
-              const hasExplicitEmpty = (loadingVal === '0') || comVal === 'EMPTY' || comVal.includes('EMPTY') || stuffVal === 'EMPTY' || stuffVal.includes('EMPTY');
-              const hasExplicitPulp = comVal.includes('PULP') || stuffVal.includes('PULP');
-              const hasExplicitTestliner = comVal.includes('TESTLINER') || comVal.includes('TESLINER') || stuffVal.includes('REUSE') || stuffVal.includes('TRANSLOADING') || comVal.includes('REUSE') || comVal.includes('TRANSLOADING');
-
-              if (hasExplicitEmpty) {
-                retType = 'EMPTY';
-                testlinerSub = '';
-              } else if (hasExplicitPulp) {
-                retType = 'PULP';
-                testlinerSub = '';
-              } else if (hasExplicitTestliner) {
-                retType = 'TESTLINER';
-                if (stuffVal.includes('TRANSLOADING') || comVal.includes('TRANSLOADING')) {
-                  testlinerSub = 'TRANSLOADING';
-                } else if (stuffVal.includes('REUSE') || comVal.includes('REUSE')) {
-                  testlinerSub = 'REUSE';
+              if (comVal) {
+                if (comVal === 'EMPTY' || comVal.includes('EMPTY')) {
+                  retType = 'EMPTY';
+                  testlinerSub = '';
+                } else if (comVal.includes('PULP')) {
+                  retType = 'PULP';
+                  testlinerSub = '';
+                } else if (comVal.includes('TESTLINER') || comVal.includes('TESLINER')) {
+                  retType = 'TESTLINER';
+                  if (stuffVal.includes('TRANSLOADING') || comVal.includes('TRANSLOADING')) {
+                    testlinerSub = 'TRANSLOADING';
+                  } else if (stuffVal.includes('REUSE') || comVal.includes('REUSE')) {
+                    testlinerSub = 'REUSE';
+                  } else {
+                    // Chưa có thông tin xác định REUSE hay TRANSLOADING -> để trống
+                    testlinerSub = '';
+                  }
                 } else {
-                  // Chưa có thông tin xác định REUSE hay TRANSLOADING -> để trống
+                  retType = '';
                   testlinerSub = '';
                 }
               } else {
-                // Không đủ căn cứ xác định loại hàng đóng về -> để trống
+                // Cột Com. trống -> để trống trường loại hàng đóng về, không tự suy đoán là EMPTY
                 retType = '';
                 testlinerSub = '';
               }
@@ -4667,12 +4668,17 @@
           let dupWithSys = 0;
           let lyingCount = 0;
           let paddedCount = 0;
+          let missingCargoInFileCount = 0;
           tempDailyImportList.forEach(item => {
             const isDup = contList.some(c => c.containerNumber === item.containerNumber && (c.blNumber === item.blNumber || c.loadingDate === item.loadingDate));
             item.isDuplicate = isDup;
             if (isDup) dupWithSys++;
             if (item.isLyingPaper) lyingCount++;
             if (item.isPadded) paddedCount++;
+            if (isContainerMissingCargoClassification(item)) {
+              missingCargoInFileCount++;
+              tempDailyImportErrors.push(`Sheet ${item.sheetName} (Cont ${item.containerNumber}, B/L ${item.blNumber || '-'}): ⚠️ Thiếu thông tin xác định loại hàng đóng về -> Đã để trống trường loại hàng`);
+            }
           });
 
           document.getElementById('dailyImportSummary').innerHTML = `
@@ -4682,6 +4688,7 @@
                 <p class="text-xs text-indigo-800 mt-0.5">
                   Mới: <strong>${tempDailyImportList.length - dupWithSys}</strong> •
                   Đã có trong hệ thống: <strong class="text-amber-800">${dupWithSys}</strong> •
+                  Thiếu TT loại hàng đóng về: <strong class="text-rose-700">${missingCargoInFileCount}</strong> •
                   Giấy xếp nằm (Tô vàng/Horizontal): <strong class="text-rose-700">${lyingCount}</strong> •
                   Có lót su (Pad=1): <strong class="text-blue-700">${paddedCount}</strong>
                 </p>
@@ -4693,7 +4700,7 @@
           const errBox = document.getElementById('dailyImportErrorBox');
           if (tempDailyImportErrors.length > 0) {
             errBox.classList.remove('hidden');
-            errBox.innerHTML = `<p class="font-bold mb-1">⚠️ Các dòng bất thường đã bỏ qua (${tempDailyImportErrors.length}):</p>` +
+            errBox.innerHTML = `<p class="font-bold mb-1">⚠️ Lưu ý / Cảnh báo kiểm tra dữ liệu (${tempDailyImportErrors.length}):</p>` +
               tempDailyImportErrors.slice(0, 20).map(e => `<div>• ${e}</div>`).join('');
           } else {
             errBox.classList.add('hidden');
@@ -4856,8 +4863,9 @@
       renderTrackingTable();
       renderDashboard();
       renderModule5Summary();
+      const totalMissingAfterCommit = contList.filter(c => isContainerMissingCargoClassification(c)).length;
       closeDailyImportPreviewModal();
-      alert(`✅ Hoàn tất Import Daily Loading Report!\n- Thêm mới: ${added} container\n- Cập nhật: ${updated} container\n- Bỏ qua trùng: ${skipped} container`);
+      alert(`✅ Hoàn tất Import Daily Loading Report!\n- Thêm mới: ${added} container\n- Cập nhật: ${updated} container\n- Bỏ qua trùng: ${skipped} container${totalMissingAfterCommit > 0 ? `\n⚠️ Cảnh báo: Hiện có ${totalMissingAfterCommit} container đang thiếu thông tin loại hàng đóng về (đã để trống trường loại hàng).` : ''}`);
     }
 
     let contSortState = { direction: '' }; // '', 'asc', 'desc'
@@ -4867,6 +4875,16 @@
       else if (contSortState.direction === 'asc') contSortState.direction = 'desc';
       else contSortState.direction = '';
       renderContTable();
+    }
+
+    function isTestlinerReuseCont(c) {
+      return !!(c && c.returnCargoType === 'TESTLINER' && c.testlinerSubtype === 'REUSE');
+    }
+
+    function formatEmptyReturnDateDisplay(c, defaultUnreturnedText = 'Chưa trả rỗng') {
+      if (c && c.emptyReturnDate) return c.emptyReturnDate;
+      if (isTestlinerReuseCont(c)) return '';
+      return defaultUnreturnedText;
     }
 
     function isContainerMissingCargoClassification(c) {
@@ -5096,7 +5114,7 @@
         if (padFilter === 'NO' && c.isPadded) return false;
         if (fromDate && (!c.loadingDate || c.loadingDate < fromDate)) return false;
         if (toDate && (!c.loadingDate || c.loadingDate > toDate)) return false;
-        if (retFilter === 'UNRETURNED' && c.emptyReturnDate) return false;
+        if (retFilter === 'UNRETURNED' && (c.emptyReturnDate || isTestlinerReuseCont(c))) return false;
         if (retFilter === 'RETURNED' && !c.emptyReturnDate) return false;
         if (specialAlertFilter === 'MISSING_CARGO' && !isContainerMissingCargoClassification(c)) return false;
         if (specialAlertFilter === 'DET_MISMATCH' && !detDiscInfo.mismatchContIds.has(c.id)) return false;
@@ -5195,8 +5213,8 @@
           <td data-col="isHqPulp" class="px-2 py-1.5 text-center">${c.isHqPulp ? '<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-bold text-[10px]">✔ HQ PULP</span>' : '<span class="text-slate-300">-</span>'}</td>
           <td data-col="isLyingPaper" class="px-2 py-1.5 text-center">${c.isLyingPaper ? '<span class="text-rose-600 font-bold">✔ Xếp nằm</span>' : '<span class="text-slate-300">-</span>'}</td>
           <td data-col="isPadded" class="px-2 py-1.5 text-center">${c.isPadded ? '<span class="text-blue-600 font-bold">✔ Lót su</span>' : '<span class="text-slate-300">-</span>'}</td>
-          <td data-col="emptyReturnDate" class="px-2 py-1.5 font-mono whitespace-nowrap ${c.emptyReturnDate ? 'text-emerald-700 font-bold' : 'text-amber-600 italic'}">
-            ${c.emptyReturnDate || 'Chưa trả rỗng'}
+          <td data-col="emptyReturnDate" class="px-2 py-1.5 font-mono whitespace-nowrap ${c.emptyReturnDate ? 'text-emerald-700 font-bold' : (isTestlinerReuseCont(c) ? 'text-slate-400' : 'text-amber-600 italic')}">
+            ${formatEmptyReturnDateDisplay(c, 'Chưa trả rỗng')}
           </td>
           <td data-col="returnDepot" class="px-2 py-1.5 text-slate-600 font-medium">${c.returnDepot || '-'}</td>
           <td data-col="remark" class="px-2 py-1.5 text-slate-600 max-w-[180px] truncate" title="${displayNote}">${displayNote || '-'}</td>
@@ -5244,7 +5262,7 @@
         } else if (mode === 'HISTORY') {
           if (!isTransOrPulp || !c.emptyReturnDate) return false;
         } else if (mode === 'ALL_UNRETURNED') {
-          if (c.emptyReturnDate) return false;
+          if (c.emptyReturnDate || isTestlinerReuseCont(c)) return false;
         }
         if (kw) {
           const t = `${c.containerNumber} ${c.blNumber || ''} ${c.pod || ''} ${c.truckPlate || ''} ${c.driverName || ''} ${c.returnDepot || ''}`.toLowerCase();
@@ -5307,7 +5325,7 @@
             </span>
           </td>
           <td data-col="returnDepot" class="px-2.5 py-2 font-medium">${c.returnDepot || '-'}</td>
-          <td data-col="emptyReturnDate" class="px-2.5 py-2 font-mono ${c.emptyReturnDate ? 'text-emerald-700 font-bold' : 'text-amber-600 italic'}">${c.emptyReturnDate || 'Chưa trả'}</td>
+          <td data-col="emptyReturnDate" class="px-2.5 py-2 font-mono ${c.emptyReturnDate ? 'text-emerald-700 font-bold' : (isTestlinerReuseCont(c) ? 'text-slate-400' : 'text-amber-600 italic')}">${formatEmptyReturnDateDisplay(c, 'Chưa trả')}</td>
           <td data-col="remark" class="px-2.5 py-2 text-slate-500 max-w-[160px] truncate" title="${c.remark || ''}">${c.remark || '-'}</td>
           <td data-col="actions" class="px-2.5 py-2 text-center">
             <button onclick="openQuickReturnModal('${c.id}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold shadow">
@@ -5680,7 +5698,7 @@
 
         if (lyingOnly && !c.isLyingPaper) return false;
         if (paddedOnly && !c.isPadded) return false;
-        if (notReturnedOnly && c.emptyReturnDate) return false;
+        if (notReturnedOnly && (c.emptyReturnDate || isTestlinerReuseCont(c))) return false;
 
         return true;
       });
@@ -5714,7 +5732,7 @@
           countEmpty++;
         }
         if (c.emptyReturnDate) countReturned++;
-        else countUnreturned++;
+        else if (!isTestlinerReuseCont(c)) countUnreturned++;
 
         const blObj = blMap[(c.blNumber || '').toUpperCase()];
         const etaStr = c.eta || (blObj ? blObj.eta : '-');
@@ -5736,7 +5754,7 @@
           <td class="px-2.5 py-2 font-medium">${c.returnCargoType}${c.returnCargoType === 'TESTLINER' ? ` (${c.testlinerSubtype})` : ''}</td>
           <td class="px-2.5 py-2 text-center">${c.isLyingPaper ? '<span class="text-rose-600 font-bold">✔</span>' : '-'}</td>
           <td class="px-2.5 py-2 text-center">${c.isPadded ? '<span class="text-blue-600 font-bold">✔</span>' : '-'}</td>
-          <td class="px-2.5 py-2 font-mono ${c.emptyReturnDate ? 'text-emerald-700 font-bold' : 'text-amber-600'}">${c.emptyReturnDate || 'Chưa trả'}</td>
+          <td class="px-2.5 py-2 font-mono ${c.emptyReturnDate ? 'text-emerald-700 font-bold' : (isTestlinerReuseCont(c) ? 'text-slate-400' : 'text-amber-600')}">${formatEmptyReturnDateDisplay(c, 'Chưa trả')}</td>
           <td class="px-2.5 py-2">${c.returnDepot || '-'}</td>
           <td class="px-2.5 py-2 text-slate-500 max-w-[150px] truncate" title="${c.remark || ''}">${c.remark || '-'}</td>
         `;
@@ -8903,7 +8921,7 @@
             <td class="px-2.5 py-1.5 text-center">${c.isHqPulp ? '<span class="text-amber-700 font-bold">✔</span>' : '-'}</td>
             <td class="px-2.5 py-1.5 text-center">${c.isChemical ? '<span class="text-purple-700 font-bold">✔</span>' : '-'}</td>
             <td class="px-2.5 py-1.5 font-semibold">${c.returnDepot || '-'}</td>
-            <td class="px-2.5 py-1.5 font-mono">${c.emptyReturnDate || 'Chưa trả'}</td>
+            <td class="px-2.5 py-1.5 font-mono">${formatEmptyReturnDateDisplay(c, 'Chưa trả')}</td>
             <td class="px-2.5 py-1.5 text-center">
               <button type="button" onclick="document.getElementById('groupContDetailModal').classList.add('hidden'); editCont('${c.id}');" class="text-blue-600 hover:underline font-semibold">Sửa</button>
             </td>
